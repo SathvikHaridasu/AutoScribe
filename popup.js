@@ -66,12 +66,12 @@ function setButtons(state) {
 
 setButtons('idle');
 
-// Helper function to check if content script is ready
+// Helper function to check content script status
 async function checkContentScript(tabId) {
   try {
-    console.log('Checking if content script is ready in tab:', tabId);
+    console.log('Checking content script status for tab:', tabId);
     
-    const pingResponse = await new Promise((resolve, reject) => {
+    const response = await new Promise((resolve, reject) => {
       chrome.tabs.sendMessage(tabId, {action: 'ping'}, (response) => {
         if (chrome.runtime.lastError) {
           reject(chrome.runtime.lastError);
@@ -81,16 +81,16 @@ async function checkContentScript(tabId) {
       });
     });
     
-    if (pingResponse && pingResponse.message === 'pong') {
-      console.log('Content script is ready');
+    if (response && response.message === 'pong') {
+      console.log('Content script is responding');
       return true;
     }
-  } catch (e) {
-    console.log('Content script not responding:', e.message);
+    console.log('Content script not responding correctly');
+    return false;
+  } catch (error) {
+    console.log('Content script not available:', error.message);
     return false;
   }
-    
-    console.log('Content script injection results:', results);
     
     // Wait a bit for the content script to initialize
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -135,8 +135,8 @@ async function sendMessageWithRetry(tabId, message, maxRetries = 3) {
   for (let i = 0; i < maxRetries; i++) {
     try {
       console.log(`Attempt ${i + 1}: Checking content script...`);
-      const isReady = await checkContentScript(tabId);
-      if (!isReady) {
+      const ready = await checkContentScript(tabId);
+      if (!ready) {
         throw new Error('Content script not ready');
       }
       
@@ -205,7 +205,7 @@ startBtn.addEventListener('click', async () => {
     
     console.log('Sending message to content script...');
     const response = await sendMessageWithRetry(tab.id, {
-      action: 'start',
+      action: 'startTyping',
       text,
       wpm: parseInt(wpm.value, 10)
     });

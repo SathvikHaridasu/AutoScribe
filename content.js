@@ -316,7 +316,46 @@ function setupMessageListener() {
     return;
   }
   
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('Content script received message:', request);
+
+    if (request.action === 'ping') {
+      console.log('Ping received, sending pong');
+      sendResponse({ message: 'pong' });
+      return true;
+    }
+
+    if (request.action === 'startTyping') {
+      console.log('Starting typing with:', request);
+      const result = startTyping(request.text, request.wpm);
+      sendResponse({ status: 'success', ...result });
+      return true;
+    }
+
+    if (request.action === 'pauseTyping') {
+      console.log('Pausing typing');
+      pauseTyping();
+      sendResponse({ status: 'success' });
+      return true;
+    }
+
+    if (request.action === 'resumeTyping') {
+      console.log('Resuming typing');
+      resumeTyping();
+      sendResponse({ status: 'success' });
+      return true;
+    }
+
+    if (request.action === 'stopTyping') {
+      console.log('Stopping typing');
+      stopTyping();
+      sendResponse({ status: 'success' });
+      return true;
+    }
+
+    sendResponse({ error: 'Unknown action' });
+    return true;
+  });
     console.log('Content script received message:', request);
     
     switch (request.action) {
@@ -359,7 +398,7 @@ function setupMessageListener() {
   console.log('Message listener setup complete');
 }
 
-// Initialize the content script
+// Initializesa the content script
 console.log('Character-by-Character Text Input content script loaded');
 
 // Setup message listener immediately
