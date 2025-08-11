@@ -66,31 +66,38 @@ function setButtons(state) {
 
 setButtons('idle');
 
-// Helper function to check content script status
-async function checkContentScript(tabId) {
+// Helper function to ensure content script is injected
+async function ensureContentScriptInjected(tabId) {
   try {
-    console.log('Checking content script status for tab:', tabId);
+    console.log('Attempting to inject content script into tab:', tabId);
     
-    const response = await new Promise((resolve, reject) => {
-      chrome.tabs.sendMessage(tabId, {action: 'ping'}, (response) => {
-        if (chrome.runtime.lastError) {
-          reject(chrome.runtime.lastError);
-        } else {
-          resolve(response);
-        }
+    // First, check if content script is already injected by trying to send a ping
+    try {
+      const pingResponse = await new Promise((resolve, reject) => {
+        chrome.tabs.sendMessage(tabId, {action: 'ping'}, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else {
+            resolve(response);
+          }
+        });
       });
+      
+      if (pingResponse && pingResponse.message === 'pong') {
+        console.log('Content script already injected and responding');
+        return true;
+      }
+    } catch (e) {
+      console.log('Content script not responding, will inject:', e.message);
+    }
+    
+    // Try to inject the content script
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      files: ['content.js']
     });
     
-    if (response && response.message === 'pong') {
-      console.log('Content script is responding');
-      return true;
-    }
-    console.log('Content script not responding correctly');
-    return false;
-  } catch (error) {
-    console.log('Content script not available:', error.message);
-    return false;
-  }
+    console.log('Content script injection results:', results);
     
     // Wait a bit for the content script to initialize
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -134,10 +141,11 @@ async function checkContentScript(tabId) {
 async function sendMessageWithRetry(tabId, message, maxRetries = 3) {
   for (let i = 0; i < maxRetries; i++) {
     try {
-      console.log(`Attempt ${i + 1}: Checking content script...`);
-      const ready = await checkContentScript(tabId);
-      if (!ready) {
-        throw new Error('Content script not ready');
+      console.log(`Attempt ${i + 1}: Injecting content script...`);
+      // First, ensure content script is injected
+      const injected = await ensureContentScriptInjected(tabId);
+      if (!injected) {
+        throw new Error('Failed to inject content script');
       }
       
       // Wait a bit for the content script to initialize
@@ -205,7 +213,7 @@ startBtn.addEventListener('click', async () => {
     
     console.log('Sending message to content script...');
     const response = await sendMessageWithRetry(tab.id, {
-      action: 'startTyping',
+      action: 'start',
       text,
       wpm: parseInt(wpm.value, 10)
     });

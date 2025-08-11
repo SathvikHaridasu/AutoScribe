@@ -1,14 +1,89 @@
 
-console.log('Character-by-Character Text Input content script loading...');
+/*  content.js — minimal working version  */
+console.log('[AutoScribe] content script loaded');
 
-let typingState = {
-  isTyping: false,
-  isPaused: false,
-  text: '',
-  currentIndex: 0,
-  wpm: 60,
-  timeoutId: null
+let typing = false;
+let textToType = '';
+let wpm = 60;
+let index = 0;
+let timer = null;
+
+/* ---------- helpers ---------- */
+const delay = () => {
+  const cps = (wpm * 5) / 60;          // "5 chars per word" rule
+  return 1000 / cps * (0.8 + Math.random() * 0.4);
 };
+
+function getTextarea() {
+  // Docs keeps the real editable surface in a textarea inside the canvas
+  return document.querySelector('.docs-textarea') ||
+         document.querySelector('[contenteditable="true"]');
+}
+
+function typeNext() {
+  if (!typing || index >= textToType.length) {
+    typing = false;
+    chrome.runtime.sendMessage({ done: true });
+    return;
+  }
+
+  const ta = getTextarea();
+  if (!ta) return;               // should not happen
+
+  const ch = textToType[index++];
+  const data = { inputType: 'insertText', data: ch };
+
+  // send the events Docs expects
+  ta.dispatchEvent(new InputEvent('beforeinput', data));
+  ta.value += ch;
+  ta.dispatchEvent(new InputEvent('input', data));
+  ta.dispatchEvent(new Event('change', { bubbles: true }));
+
+  timer = setTimeout(typeNext, delay());
+}
+
+/* ---------- message handling ---------- */
+chrome.runtime.onMessage.addListener((msg, sender, respond) => {
+  if (msg.action === 'start') {
+    if (typing) return respond({ ok: false, error: 'already running' });
+
+    textToType = msg.text;
+    wpm = msg.wpm || 60;
+    index = 0;
+    typing = true;
+
+    // ensure the textarea exists
+    const wait = setInterval(() => {
+      if (getTextarea()) {
+        clearInterval(wait);
+        typeNext();
+      }
+    }, 200);
+    return respond({ ok: true });
+  }
+
+  if (msg.action === 'stop') {
+    clearTimeout(timer);
+    typing = false;
+    return respond({ ok: true });
+  }
+
+  if (msg.action === 'pause') {
+    clearTimeout(timer);
+    return respond({ ok: true });
+  }
+
+  if (msg.action === 'resume') {
+    if (typing) {
+      typeNext();
+    }
+    return respond({ ok: true });
+  }
+
+  if (msg.action === 'ping') {
+    return respond({ pong: true });
+  }
+});
 
 function findGoogleDocsEditor() {
   console.log('Searching for Google Docs editor...');
@@ -157,7 +232,7 @@ function typeCharacter(editor, char) {
     textArea.dispatchEvent(beforeInputEvent);
     textArea.dispatchEvent(inputEvent);
     
-    // Method 4: Tries keyboard events as a fallback
+    // Method 4: Try keyboard events as a fallback
     const keyCode = char.charCodeAt(0);
     const keydownEvent = new KeyboardEvent('keydown', {
       key: char,
@@ -199,7 +274,7 @@ function typeCharacter(editor, char) {
   }
 }
 
-// main typing function
+// ain typing function
 function typeNextCharacter() {
   console.log('typeNextCharacter called, state:', typingState);
   
@@ -316,46 +391,7 @@ function setupMessageListener() {
     return;
   }
   
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    console.log('Content script received message:', request);
-
-    if (request.action === 'ping') {
-      console.log('Ping received, sending pong');
-      sendResponse({ message: 'pong' });
-      return true;
-    }
-
-    if (request.action === 'startTyping') {
-      console.log('Starting typing with:', request);
-      const result = startTyping(request.text, request.wpm);
-      sendResponse({ status: 'success', ...result });
-      return true;
-    }
-
-    if (request.action === 'pauseTyping') {
-      console.log('Pausing typing');
-      pauseTyping();
-      sendResponse({ status: 'success' });
-      return true;
-    }
-
-    if (request.action === 'resumeTyping') {
-      console.log('Resuming typing');
-      resumeTyping();
-      sendResponse({ status: 'success' });
-      return true;
-    }
-
-    if (request.action === 'stopTyping') {
-      console.log('Stopping typing');
-      stopTyping();
-      sendResponse({ status: 'success' });
-      return true;
-    }
-
-    sendResponse({ error: 'Unknown action' });
-    return true;
-  });
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Content script received message:', request);
     
     switch (request.action) {
@@ -398,7 +434,7 @@ function setupMessageListener() {
   console.log('Message listener setup complete');
 }
 
-// Initializesa the content script
+// Initialize the content script
 console.log('Character-by-Character Text Input content script loaded');
 
 // Setup message listener immediately
