@@ -66,36 +66,29 @@ function setButtons(state) {
 
 setButtons('idle');
 
-// Helper function to ensure content script is injected
-async function ensureContentScriptInjected(tabId) {
+// Helper function to check if content script is ready
+async function checkContentScript(tabId) {
   try {
-    console.log('Attempting to inject content script into tab:', tabId);
+    console.log('Checking if content script is ready in tab:', tabId);
     
-    // First, check if content script is already injected by trying to send a ping
-    try {
-      const pingResponse = await new Promise((resolve, reject) => {
-        chrome.tabs.sendMessage(tabId, {action: 'ping'}, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(chrome.runtime.lastError);
-          } else {
-            resolve(response);
-          }
-        });
+    const pingResponse = await new Promise((resolve, reject) => {
+      chrome.tabs.sendMessage(tabId, {action: 'ping'}, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(response);
+        }
       });
-      
-      if (pingResponse && pingResponse.message === 'pong') {
-        console.log('Content script already injected and responding');
-        return true;
-      }
-    } catch (e) {
-      console.log('Content script not responding, will inject:', e.message);
-    }
-    
-    // Try to inject the content script
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: tabId },
-      files: ['content.js']
     });
+    
+    if (pingResponse && pingResponse.message === 'pong') {
+      console.log('Content script is ready');
+      return true;
+    }
+  } catch (e) {
+    console.log('Content script not responding:', e.message);
+    return false;
+  }
     
     console.log('Content script injection results:', results);
     
@@ -141,11 +134,10 @@ async function ensureContentScriptInjected(tabId) {
 async function sendMessageWithRetry(tabId, message, maxRetries = 3) {
   for (let i = 0; i < maxRetries; i++) {
     try {
-      console.log(`Attempt ${i + 1}: Injecting content script...`);
-      // First, ensure content script is injected
-      const injected = await ensureContentScriptInjected(tabId);
-      if (!injected) {
-        throw new Error('Failed to inject content script');
+      console.log(`Attempt ${i + 1}: Checking content script...`);
+      const isReady = await checkContentScript(tabId);
+      if (!isReady) {
+        throw new Error('Content script not ready');
       }
       
       // Wait a bit for the content script to initialize
