@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "AutoScribe",
+  "version": "1.0",
+  "description": "Simulate character-by-character typing in Google Docs.",
+  "permissions": ["activeTab", "scripting", "tabs"],
+  "host_permissions": ["https://docs.google.com/document/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://docs.google.com/document/*"],
+      "js": ["content.js"],
+      "run_at": "document_end",
+      "all_frames": false
+    }
+  ]
+} 
