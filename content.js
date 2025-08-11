@@ -3,14 +3,17 @@
 console.log('[AutoScribe] content script loaded');
 
 // Global state management
-let typingState = {
-  isTyping: false,
-  isPaused: false,
-  text: '',
-  currentIndex: 0,
-  wpm: 60,
-  timeoutId: null
-};
+if (typeof window.autoScribeTypingState === 'undefined') {
+  window.autoScribeTypingState = {
+    isTyping: false,
+    isPaused: false,
+    text: '',
+    currentIndex: 0,
+    wpm: 60,
+    timeoutId: null
+  };
+}
+let typingState = window.autoScribeTypingState;
 
 /* ---------- helper functions ---------- */
 function calculateDelay(wpm) {
@@ -213,7 +216,7 @@ function startTyping(text, wpm) {
     stopTyping();
     
     // Initialize typing state
-    typingState = {
+    window.autoScribeTypingState = {
       isTyping: true,
       isPaused: false,
       text: text,
@@ -221,6 +224,7 @@ function startTyping(text, wpm) {
       wpm: wpm,
       timeoutId: null
     };
+    typingState = window.autoScribeTypingState;
     
     console.log('Typing state initialized:', typingState);
     
@@ -255,7 +259,7 @@ function stopTyping() {
   if (typingState.timeoutId) {
     clearTimeout(typingState.timeoutId);
   }
-  typingState = {
+  window.autoScribeTypingState = {
     isTyping: false,
     isPaused: false,
     text: '',
@@ -263,51 +267,69 @@ function stopTyping() {
     wpm: 60,
     timeoutId: null
   };
+  typingState = window.autoScribeTypingState;
 }
 
 /* ---------- message handling ---------- */
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('Content script received message:', request);
+// Only set up message listener once
+if (!window.autoScribeMessageListenerSet) {
+  window.autoScribeMessageListenerSet = true;
   
-  switch (request.action) {
-    case 'ping':
-      console.log('Ping received, responding with pong');
-      sendResponse({ message: 'pong', timestamp: Date.now() });
-      break;
-      
-    case 'start':
-      const result = startTyping(request.text, request.wpm);
-      sendResponse(result);
-      break;
-      
-    case 'pause':
-      pauseTyping();
-      sendResponse({ success: true });
-      break;
-      
-    case 'resume':
-      resumeTyping();
-      sendResponse({ success: true });
-      break;
-      
-    case 'stop':
-      stopTyping();
-      sendResponse({ success: true });
-      break;
-      
-    case 'status':
-      sendResponse({ isTyping: typingState.isTyping });
-      break;
-      
-    default:
-      sendResponse({ error: 'Unknown action' });
-  }
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('Content script received message:', request);
+    
+    switch (request.action) {
+      case 'ping':
+        console.log('Ping received, responding with pong');
+        sendResponse({ message: 'pong', timestamp: Date.now() });
+        break;
+        
+      case 'start':
+        const result = startTyping(request.text, request.wpm);
+        sendResponse(result);
+        break;
+        
+      case 'pause':
+        pauseTyping();
+        sendResponse({ success: true });
+        break;
+        
+      case 'resume':
+        resumeTyping();
+        sendResponse({ success: true });
+        break;
+        
+      case 'stop':
+        stopTyping();
+        sendResponse({ success: true });
+        break;
+        
+      case 'status':
+        sendResponse({ isTyping: typingState.isTyping });
+        break;
+        
+      default:
+        sendResponse({ error: 'Unknown action' });
+    }
+    
+    return true; // Keep message channel open for async response
+  });
   
-  return true; // Keep message channel open for async response
-});
+  console.log('Message listener set up');
+}
 
 /* ---------- initialization ---------- */
-console.log('AutoScribe content script loaded');
+// Prevent duplicate injections
+if (typeof window.autoScribeLoaded !== 'undefined') {
+  console.log('AutoScribe content script already loaded, skipping...');
+  // Still respond to messages even if already loaded
+} else {
+  console.log('AutoScribe content script loaded');
+  window.autoScribeLoaded = true;
+  
+  // Immediately notify that the script is loaded
+  console.log('Content script initialization complete');
+}
 
 // Add a simple test to verify the content script is working
 window.addEventListener('load', () => {
@@ -320,4 +342,13 @@ window.addEventListener('load', () => {
   } else {
     console.log('❌ Google Docs editor not found');
   }
-}); 
+});
+
+// Also check when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM content loaded, content script ready');
+  });
+} else {
+  console.log('DOM already loaded, content script ready');
+} 

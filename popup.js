@@ -69,9 +69,9 @@ setButtons('idle');
 // Helper function to ensure content script is injected
 async function ensureContentScriptInjected(tabId) {
   try {
-    console.log('Attempting to inject content script into tab:', tabId);
+    console.log('Checking if content script is available...');
     
-    // First, check if content script is already injected by trying to send a ping
+    // First try to ping the content script
     try {
       const pingResponse = await new Promise((resolve, reject) => {
         chrome.tabs.sendMessage(tabId, {action: 'ping'}, (response) => {
@@ -84,26 +84,55 @@ async function ensureContentScriptInjected(tabId) {
       });
       
       if (pingResponse && pingResponse.message === 'pong') {
-        console.log('Content script already injected and responding');
+        console.log('Content script is already available and responding');
         return true;
       }
     } catch (e) {
       console.log('Content script not responding, will inject:', e.message);
     }
     
-    // Try to inject the content script
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: tabId },
-      files: ['content.js']
-    });
-    
-    console.log('Content script injection results:', results);
-    
-    // Wait a bit for the content script to initialize
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Test if the injection worked
+    // If we get here, content script is not available, so inject it
+    console.log('Injecting content script...');
     try {
+      // Check if content script is already injected by checking for a global variable
+      const checkInjection = await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        func: () => {
+          return typeof window.autoScribeLoaded !== 'undefined';
+        }
+      });
+      
+      if (checkInjection[0] && checkInjection[0].result === true) {
+        console.log('Content script already injected, just needs to respond');
+        // Wait a bit and try ping again
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const retryPing = await new Promise((resolve, reject) => {
+          chrome.tabs.sendMessage(tabId, {action: 'ping'}, (response) => {
+            if (chrome.runtime.lastError) {
+              reject(chrome.runtime.lastError);
+            } else {
+              resolve(response);
+            }
+          });
+        });
+        
+        if (retryPing && retryPing.message === 'pong') {
+          console.log('Content script now responding');
+          return true;
+        }
+      }
+      
+      // Inject the content script
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: ['content.js']
+      });
+      console.log('Content script injection results:', results);
+      
+      // Wait a bit for the content script to initialize
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Test if the injection worked
       const testResponse = await new Promise((resolve, reject) => {
         chrome.tabs.sendMessage(tabId, {action: 'ping'}, (response) => {
           if (chrome.runtime.lastError) {
@@ -121,13 +150,13 @@ async function ensureContentScriptInjected(tabId) {
         console.error('Content script injected but not responding correctly:', testResponse);
         return false;
       }
-    } catch (e) {
-      console.error('Content script injected but not responding:', e);
+    } catch (injectionError) {
+      console.error('Failed to inject content script:', injectionError);
       return false;
     }
     
   } catch (error) {
-    console.error('Failed to inject content script:', error);
+    console.error('Error in ensureContentScriptInjected:', error);
     return false;
   }
 }
@@ -136,16 +165,13 @@ async function ensureContentScriptInjected(tabId) {
 async function sendMessageWithRetry(tabId, message, maxRetries = 3) {
   for (let i = 0; i < maxRetries; i++) {
     try {
-      console.log(`Attempt ${i + 1}: Injecting content script...`);
-      // First, ensure content script is injected
+      console.log(`Attempt ${i + 1}: Ensuring content script is injected...`);
+      
+      // Ensure content script is injected
       const injected = await ensureContentScriptInjected(tabId);
       if (!injected) {
-        throw new Error('Failed to inject content script');
+        throw new Error('Failed to inject content script. Please refresh the Google Docs page.');
       }
-      
-      // Wait a bit for the content script to initialize
-      console.log(`Attempt ${i + 1}: Waiting for content script to initialize...`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Send the message
       console.log(`Attempt ${i + 1}: Sending message:`, message);
@@ -308,20 +334,11 @@ testBtn.addEventListener('click', async () => {
     const permissions = await chrome.permissions.getAll();
     console.log('Current permissions:', permissions);
     
-    // Check if we can inject scripts
-    console.log('Testing script injection permission...');
-    try {
-      const testInjection = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () => {
-          console.log('Test injection successful');
-          return 'injection test successful';
-        }
-      });
-      console.log('Script injection test result:', testInjection);
-    } catch (e) {
-      console.error('Script injection test failed:', e);
-      showError(`Script injection failed: ${e.message}. Please check extension permissions.`);
+    // Check if content script is available
+    console.log('Testing content script availability...');
+    const available = await ensureContentScriptInjected(tab.id);
+    if (!available) {
+      showError('Content script not available. Please refresh the Google Docs page and try again.');
       return;
     }
     
