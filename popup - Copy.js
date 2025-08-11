@@ -94,6 +94,34 @@ async function ensureContentScriptInjected(tabId) {
     // If we get here, content script is not available, so inject it
     console.log('Injecting content script...');
     try {
+      // Check if content script is already injected by checking for a global variable
+      const checkInjection = await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        func: () => {
+          return typeof window.autoScribeLoaded !== 'undefined';
+        }
+      });
+      
+      if (checkInjection[0] && checkInjection[0].result === true) {
+        console.log('Content script already injected, just needs to respond');
+        // Wait a bit and try ping again
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const retryPing = await new Promise((resolve, reject) => {
+          chrome.tabs.sendMessage(tabId, {action: 'ping'}, (response) => {
+            if (chrome.runtime.lastError) {
+              reject(chrome.runtime.lastError);
+            } else {
+              resolve(response);
+            }
+          });
+        });
+        
+        if (retryPing && retryPing.message === 'pong') {
+          console.log('Content script now responding');
+          return true;
+        }
+      }
+      
       // Inject the content script
       const results = await chrome.scripting.executeScript({
         target: { tabId: tabId },
@@ -102,7 +130,7 @@ async function ensureContentScriptInjected(tabId) {
       console.log('Content script injection results:', results);
       
       // Wait a bit for the content script to initialize
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Test if the injection worked
       const testResponse = await new Promise((resolve, reject) => {
@@ -177,7 +205,7 @@ async function sendMessageWithRetry(tabId, message, maxRetries = 3) {
 
 startBtn.addEventListener('click', async () => {
   clearError();
-  const text = inputText.value.trim();
+  const text = inputText.value;
   if (!text) {
     showError('Please enter some text.');
     return;
@@ -192,7 +220,6 @@ startBtn.addEventListener('click', async () => {
   }
   
   console.log('Start button clicked, text:', text);
-  showError('Starting typing...', true);
   
   try {
     // Check if on Google Docs
@@ -226,7 +253,6 @@ startBtn.addEventListener('click', async () => {
     
     setButtons('typing');
     inputText.value = '';
-    showError('Typing in progress...', true);
     
     // Set up a listener to detect when typing completes
     const checkCompletion = setInterval(async () => {
@@ -241,15 +267,13 @@ startBtn.addEventListener('click', async () => {
       } catch (error) {
         clearInterval(checkCompletion);
         console.error('Error checking status:', error);
-        setButtons('idle');
       }
-    }, 1000);
+    }, 500);
     
   } catch (error) {
     console.error('Communication error:', error);
     const errorMessage = error.message || 'Unknown error';
     showError(`Could not communicate with content script: ${errorMessage}. Please refresh the page and try again.`);
-    setButtons('idle');
   }
 });
 
@@ -259,7 +283,6 @@ pauseBtn.addEventListener('click', async () => {
     const tab = tabs[0];
     await sendMessageWithRetry(tab.id, {action: 'pause'});
     setButtons('paused');
-    showError('Typing paused', true);
   } catch (error) {
     console.error('Error pausing:', error);
     showError('Failed to pause typing. Please try again.');
@@ -272,7 +295,6 @@ resumeBtn.addEventListener('click', async () => {
     const tab = tabs[0];
     await sendMessageWithRetry(tab.id, {action: 'resume'});
     setButtons('typing');
-    showError('Typing resumed', true);
   } catch (error) {
     console.error('Error resuming:', error);
     showError('Failed to resume typing. Please try again.');
@@ -285,8 +307,6 @@ stopBtn.addEventListener('click', async () => {
     const tab = tabs[0];
     await sendMessageWithRetry(tab.id, {action: 'stop'});
     setButtons('idle');
-    showError('Typing stopped', true);
-    setTimeout(clearError, 2000);
   } catch (error) {
     console.error('Error stopping:', error);
     showError('Failed to stop typing. Please try again.');
@@ -296,7 +316,6 @@ stopBtn.addEventListener('click', async () => {
 testBtn.addEventListener('click', async () => {
   console.log('Test button clicked');
   clearError();
-  showError('Testing connection...', true);
   
   try {
     // First, check if we can access tabs
@@ -309,6 +328,11 @@ testBtn.addEventListener('click', async () => {
       showError('Please use this extension on a Google Docs page.');
       return;
     }
+    
+    // Check if we have the right permissions
+    console.log('Checking permissions...');
+    const permissions = await chrome.permissions.getAll();
+    console.log('Current permissions:', permissions);
     
     // Check if content script is available
     console.log('Testing content script availability...');

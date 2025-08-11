@@ -41,10 +41,10 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
       return null;
     }
     
-    // Try multiple selectors to find the actual editable content
     const selectors = [
-      '.kix-lineview-content',
+      '.kix-appview-editor',
       '[contenteditable="true"][role="textbox"]',
+      '.kix-lineview-content',
       '.kix-appview-editor-content',
       '.docs-textarea',
       '.kix-appview-editor-content .kix-lineview-content'
@@ -73,24 +73,18 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     console.log('Focusing editor');
     
     try {
-      // Click on the editor to ensure focus
-      editor.click();
       editor.focus();
       
-      // Set cursor to end of content
       const range = document.createRange();
       const selection = window.getSelection();
       
       selection.removeAllRanges();
       
-      // Find the last text node or create one
-      let targetNode = editor;
       if (editor.childNodes.length > 0) {
         const lastNode = editor.childNodes[editor.childNodes.length - 1];
         if (lastNode.nodeType === Node.TEXT_NODE) {
-          targetNode = lastNode;
-          range.setStart(targetNode, targetNode.textContent.length);
-          range.setEnd(targetNode, targetNode.textContent.length);
+          range.setStart(lastNode, lastNode.textContent.length);
+          range.setEnd(lastNode, lastNode.textContent.length);
         } else {
           range.setStartAfter(lastNode);
           range.setEndAfter(lastNode);
@@ -101,6 +95,17 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
       }
   
       selection.addRange(range);
+      
+      // Simulate a click to ensure focus
+      const rect = editor.getBoundingClientRect();
+      const clickEvent = new MouseEvent('click', {
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2,
+        bubbles: true,
+        cancelable: true
+      });
+      
+      editor.dispatchEvent(clickEvent);
       
       console.log('Editor focused and cursor positioned');
     } catch (error) {
@@ -115,87 +120,43 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
       // Focus the editor first
       editor.focus();
       
-      // Method 1: Try to insert text directly into the editor
-      try {
-        // Get current selection
-        const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          
-          // Create text node and insert it
-          const textNode = document.createTextNode(char);
-          range.insertNode(textNode);
-          
-          // Move cursor after the inserted text
-          range.setStartAfter(textNode);
-          range.setEndAfter(textNode);
-          
-          // Update selection
-          selection.removeAllRanges();
-          selection.addRange(range);
-          
-          console.log('Text inserted via direct DOM manipulation');
-          return true;
-        }
-      } catch (e) {
-        console.log('Direct DOM manipulation failed:', e);
-      }
-      
-      // Method 2: Try execCommand
+      // Method 1: Try execCommand (works in some cases)
       try {
         const success = document.execCommand('insertText', false, char);
         if (success) {
           console.log('Text inserted via execCommand');
-          return true;
+          return;
         }
       } catch (e) {
         console.log('execCommand failed:', e);
       }
       
-      // Method 3: Try to find the actual textarea and simulate typing
+      // Method 2: Use selection API
+      const selection = window.getSelection();
+      if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const textNode = document.createTextNode(char);
+        
+        range.insertNode(textNode);
+        range.setStartAfter(textNode);
+        range.setEndAfter(textNode);
+        
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        console.log('Text inserted via selection API');
+        return;
+      }
+      
+      // Method 3: Try to find the actual textarea in Google Docs
       const textArea = document.querySelector('.kix-lineview-content') ||
                       document.querySelector('[contenteditable="true"][role="textbox"]') ||
                       document.querySelector('.kix-appview-editor-content') ||
+                      document.querySelector('.docs-textarea') ||
                       editor;
       
-      // Method 4: Try to find Google Docs specific elements
-      const googleDocsElements = [
-        document.querySelector('.kix-lineview-content'),
-        document.querySelector('.kix-appview-editor-content'),
-        document.querySelector('[contenteditable="true"][role="textbox"]'),
-        document.querySelector('.docs-textarea'),
-        document.querySelector('.kix-appview-editor-content .kix-lineview-content'),
-        document.querySelector('.kix-appview-editor-content .kix-lineview-content-wrapper'),
-        document.querySelector('.kix-appview-editor-content .kix-lineview-content-wrapper .kix-lineview-content')
-      ].filter(el => el !== null);
-      
-      // Try each Google Docs element
-      for (const element of googleDocsElements) {
-        try {
-          element.focus();
-          
-          // Try to insert text directly
-          if (element.textContent !== undefined) {
-            element.textContent += char;
-            console.log('Text inserted via textContent modification on:', element);
-            return true;
-          }
-          
-          // Try to set innerHTML
-          if (element.innerHTML !== undefined) {
-            element.innerHTML += char;
-            console.log('Text inserted via innerHTML modification on:', element);
-            return true;
-          }
-        } catch (e) {
-          console.log('Failed to modify element:', element, e);
-        }
-      }
-      
-      // Method 5: Simulate keyboard events more realistically
+      // Method 4: Try keyboard simulation
       const keyCode = char.charCodeAt(0);
-      
-      // Create more realistic keyboard events
       const keydownEvent = new KeyboardEvent('keydown', {
         key: char,
         code: char.length === 1 ? `Key${char.toUpperCase()}` : 'Key' + char,
@@ -203,8 +164,7 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
         which: keyCode,
         bubbles: true,
         cancelable: true,
-        composed: true,
-        isTrusted: false
+        composed: true
       });
       
       const keypressEvent = new KeyboardEvent('keypress', {
@@ -214,8 +174,7 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
         which: keyCode,
         bubbles: true,
         cancelable: true,
-        composed: true,
-        isTrusted: false
+        composed: true
       });
       
       const keyupEvent = new KeyboardEvent('keyup', {
@@ -225,28 +184,14 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
         which: keyCode,
         bubbles: true,
         cancelable: true,
-        composed: true,
-        isTrusted: false
-      });
-      
-      // Dispatch events to all possible elements
-      [textArea, ...googleDocsElements].forEach(element => {
-        if (element) {
-          element.dispatchEvent(keydownEvent);
-          element.dispatchEvent(keypressEvent);
-          element.dispatchEvent(keyupEvent);
-        }
-      });
-      
-      // Method 6: Input events
-      const beforeInputEvent = new InputEvent('beforeinput', {
-        inputType: 'insertText',
-        data: char,
-        bubbles: true,
-        cancelable: true,
         composed: true
       });
       
+      textArea.dispatchEvent(keydownEvent);
+      textArea.dispatchEvent(keypressEvent);
+      textArea.dispatchEvent(keyupEvent);
+      
+      // Method 5: Input events as fallback
       const inputEvent = new InputEvent('input', {
         inputType: 'insertText',
         data: char,
@@ -255,18 +200,20 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
         composed: true
       });
       
-      [textArea, ...googleDocsElements].forEach(element => {
-        if (element) {
-          element.dispatchEvent(beforeInputEvent);
-          element.dispatchEvent(inputEvent);
-        }
+      const beforeInputEvent = new InputEvent('beforeinput', {
+        inputType: 'insertText',
+        data: char,
+        bubbles: true,
+        cancelable: true,
+        composed: true
       });
       
+      textArea.dispatchEvent(beforeInputEvent);
+      textArea.dispatchEvent(inputEvent);
+      
       console.log('Character typing completed');
-      return false;
     } catch (error) {
       console.error('Error typing character:', error);
-      return false;
     }
   }
   
@@ -297,15 +244,7 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     
     const char = typingState.text[typingState.currentIndex];
     console.log('Typing character:', char, 'at index:', typingState.currentIndex);
-    
-    // Try to type the character
-    const success = typeCharacter(editor, char);
-    if (success) {
-      console.log('Successfully typed character:', char);
-    } else {
-      console.log('Failed to type character:', char);
-    }
-    
+    typeCharacter(editor, char);
     typingState.currentIndex++;
     
     // Schedule next character
@@ -330,71 +269,26 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
       // Stop any existing typing
       stopTyping();
       
-      // Try to paste the entire text first (faster method)
-      try {
-        console.log('Attempting to paste entire text...');
-        
-        // Focus the editor
-        focusEditor(editor);
-        
-        // Try to paste using clipboard API
-        navigator.clipboard.writeText(text).then(() => {
-          // Simulate Ctrl+V paste
-          const pasteEvent = new KeyboardEvent('keydown', {
-            key: 'v',
-            code: 'KeyV',
-            keyCode: 86,
-            which: 86,
-            ctrlKey: true,
-            bubbles: true,
-            cancelable: true,
-            composed: true
-          });
-          
-          editor.dispatchEvent(pasteEvent);
-          console.log('Paste event dispatched');
-          
-          // If paste doesn't work, fall back to character-by-character typing
-          setTimeout(() => {
-            if (!window.autoScribeTypingState.isTyping) {
-              console.log('Paste failed, falling back to character typing');
-              startCharacterTyping(text, wpm, editor);
-            }
-          }, 500);
-        }).catch(() => {
-          console.log('Clipboard API failed, using character typing');
-          startCharacterTyping(text, wpm, editor);
-        });
-        
-      } catch (e) {
-        console.log('Paste method failed, using character typing:', e);
-        startCharacterTyping(text, wpm, editor);
-      }
+      // Initialize typing state
+      window.autoScribeTypingState = {
+        isTyping: true,
+        isPaused: false,
+        text: text,
+        currentIndex: 0,
+        wpm: wpm,
+        timeoutId: null
+      };
+      
+      console.log('Typing state initialized:', window.autoScribeTypingState);
+      
+      // Focus the editor
+      focusEditor(editor);
+      
+      // Start typing
+      typeNextCharacter();
     }, 1000); // Wait 1 second for Google Docs to be ready
     
     return { success: true };
-  }
-  
-  function startCharacterTyping(text, wpm, editor) {
-    console.log('Starting character-by-character typing');
-    
-    // Initialize typing state
-    window.autoScribeTypingState = {
-      isTyping: true,
-      isPaused: false,
-      text: text,
-      currentIndex: 0,
-      wpm: wpm,
-      timeoutId: null
-    };
-    
-    console.log('Typing state initialized:', window.autoScribeTypingState);
-    
-    // Focus the editor
-    focusEditor(editor);
-    
-    // Start typing
-    typeNextCharacter();
   }
   
   function pauseTyping() {
