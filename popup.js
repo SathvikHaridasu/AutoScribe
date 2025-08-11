@@ -128,11 +128,6 @@ async function ensureContentScriptInjected(tabId) {
     
   } catch (error) {
     console.error('Failed to inject content script:', error);
-    console.error('Injection error details:', {
-      message: error.message,
-      stack: error.stack,
-      type: typeof error
-    });
     return false;
   }
 }
@@ -222,6 +217,11 @@ startBtn.addEventListener('click', async () => {
     
     if (response && response.error) {
       showError(response.error);
+      return;
+    }
+    
+    if (response && response.success === false) {
+      showError(response.error || 'Failed to start typing');
       return;
     }
     

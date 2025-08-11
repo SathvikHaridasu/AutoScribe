@@ -1,95 +1,34 @@
 
-/*  content.js — minimal working version  */
+/*  content.js — AutoScribe Chrome Extension  */
 console.log('[AutoScribe] content script loaded');
 
-let typing = false;
-let textToType = '';
-let wpm = 60;
-let index = 0;
-let timer = null;
-
-/* ---------- helpers ---------- */
-const delay = () => {
-  const cps = (wpm * 5) / 60;          // "5 chars per word" rule
-  return 1000 / cps * (0.8 + Math.random() * 0.4);
+// Global state management
+let typingState = {
+  isTyping: false,
+  isPaused: false,
+  text: '',
+  currentIndex: 0,
+  wpm: 60,
+  timeoutId: null
 };
 
-function getTextarea() {
-  // Docs keeps the real editable surface in a textarea inside the canvas
-  return document.querySelector('.docs-textarea') ||
-         document.querySelector('[contenteditable="true"]');
+/* ---------- helper functions ---------- */
+function calculateDelay(wpm) {
+  // WPM = words per minute, so we need to convert to characters per second
+  const charsPerSecond = (wpm * 5) / 60;
+  const delayMs = 1000 / charsPerSecond;
+  
+  // Add some randomness to make it more human-like
+  const variation = 0.8 + (Math.random() * 0.4);
+  return delayMs * variation;
 }
-
-function typeNext() {
-  if (!typing || index >= textToType.length) {
-    typing = false;
-    chrome.runtime.sendMessage({ done: true });
-    return;
-  }
-
-  const ta = getTextarea();
-  if (!ta) return;               // should not happen
-
-  const ch = textToType[index++];
-  const data = { inputType: 'insertText', data: ch };
-
-  // send the events Docs expects
-  ta.dispatchEvent(new InputEvent('beforeinput', data));
-  ta.value += ch;
-  ta.dispatchEvent(new InputEvent('input', data));
-  ta.dispatchEvent(new Event('change', { bubbles: true }));
-
-  timer = setTimeout(typeNext, delay());
-}
-
-/* ---------- message handling ---------- */
-chrome.runtime.onMessage.addListener((msg, sender, respond) => {
-  if (msg.action === 'start') {
-    if (typing) return respond({ ok: false, error: 'already running' });
-
-    textToType = msg.text;
-    wpm = msg.wpm || 60;
-    index = 0;
-    typing = true;
-
-    // ensure the textarea exists
-    const wait = setInterval(() => {
-      if (getTextarea()) {
-        clearInterval(wait);
-        typeNext();
-      }
-    }, 200);
-    return respond({ ok: true });
-  }
-
-  if (msg.action === 'stop') {
-    clearTimeout(timer);
-    typing = false;
-    return respond({ ok: true });
-  }
-
-  if (msg.action === 'pause') {
-    clearTimeout(timer);
-    return respond({ ok: true });
-  }
-
-  if (msg.action === 'resume') {
-    if (typing) {
-      typeNext();
-    }
-    return respond({ ok: true });
-  }
-
-  if (msg.action === 'ping') {
-    return respond({ pong: true });
-  }
-});
 
 function findGoogleDocsEditor() {
   console.log('Searching for Google Docs editor...');
   
+  // Wait for Google Docs to load
   if (!document.querySelector('.kix-appview-editor')) {
-    console.log('Google Docs editor not yet loaded, waiting...');
+    console.log('Google Docs editor not yet loaded');
     return null;
   }
   
@@ -103,7 +42,7 @@ function findGoogleDocsEditor() {
   for (const selector of selectors) {
     const element = document.querySelector(selector);
     if (element) {
-      console.log('Found editor element with selector:', selector, element);
+      console.log('Found editor element with selector:', selector);
       return element;
     }
   }
@@ -112,20 +51,8 @@ function findGoogleDocsEditor() {
   return null;
 }
 
-function calculateDelay(wpm) {
-    
-  // WPM = words per minute, so we need to convert to characters per second
-  const charsPerSecond = (wpm * 5) / 60;
-  const delayMs = 1000 / charsPerSecond;
-  
-  // some randomness in the code
-  const variation = 0.8 + (Math.random() * 0.4);
-  return delayMs * variation;
-}
-
-// focusing on the position of the cursor in docs
 function focusEditor(editor) {
-  console.log('Focusing editor:', editor);
+  console.log('Focusing editor');
   
   try {
     editor.focus();
@@ -151,6 +78,7 @@ function focusEditor(editor) {
 
     selection.addRange(range);
     
+    // Simulate a click to ensure focus
     const rect = editor.getBoundingClientRect();
     const clickEvent = new MouseEvent('click', {
       clientX: rect.left + rect.width / 2,
@@ -168,16 +96,15 @@ function focusEditor(editor) {
 }
 
 function typeCharacter(editor, char) {
-  console.log('Attempting to type character:', char);
+  console.log('Typing character:', char);
   
   try {
     // Focus the editor first
     editor.focus();
     
-    // Method 1: Try to use execCommand (works in some cases)
+    // Method 1: Try execCommand (works in some cases)
     try {
       const success = document.execCommand('insertText', false, char);
-      console.log('execCommand result:', success);
       if (success) {
         console.log('Text inserted via execCommand');
         return;
@@ -186,28 +113,24 @@ function typeCharacter(editor, char) {
       console.log('execCommand failed:', e);
     }
     
-    // method 2: use the selection API to insert text at the cursor position
+    // Method 2: Use selection API
     const selection = window.getSelection();
     if (selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      
       const textNode = document.createTextNode(char);
       
-      // insert the text
       range.insertNode(textNode);
-      
-      // move cursor after the inserted text
       range.setStartAfter(textNode);
       range.setEndAfter(textNode);
       
-      // update selection
       selection.removeAllRanges();
       selection.addRange(range);
       
       console.log('Text inserted via selection API');
+      return;
     }
     
-    // Method 3: Creates \ comprehensive input events that Google Docs should recognize
+    // Method 3: Input events
     const textArea = document.querySelector('.kix-lineview-content') ||
                     document.querySelector('[contenteditable="true"][role="textbox"]') ||
                     document.querySelector('.kix-appview-editor-content') ||
@@ -232,49 +155,13 @@ function typeCharacter(editor, char) {
     textArea.dispatchEvent(beforeInputEvent);
     textArea.dispatchEvent(inputEvent);
     
-    // Method 4: Try keyboard events as a fallback
-    const keyCode = char.charCodeAt(0);
-    const keydownEvent = new KeyboardEvent('keydown', {
-      key: char,
-      code: char.length === 1 ? `Key${char.toUpperCase()}` : 'Key' + char,
-      keyCode: keyCode,
-      which: keyCode,
-      bubbles: true,
-      cancelable: true,
-      composed: true
-    });
-    
-    const keypressEvent = new KeyboardEvent('keypress', {
-      key: char,
-      code: char.length === 1 ? `Key${char.toUpperCase()}` : 'Key' + char,
-      keyCode: keyCode,
-      which: keyCode,
-      bubbles: true,
-      cancelable: true,
-      composed: true
-    });
-    
-    const keyupEvent = new KeyboardEvent('keyup', {
-      key: char,
-      code: char.length === 1 ? `Key${char.toUpperCase()}` : 'Key' + char,
-      keyCode: keyCode,
-      which: keyCode,
-      bubbles: true,
-      cancelable: true,
-      composed: true
-    });
-    
-    textArea.dispatchEvent(keydownEvent);
-    textArea.dispatchEvent(keypressEvent);
-    textArea.dispatchEvent(keyupEvent);
-    
     console.log('Character typing completed');
   } catch (error) {
     console.error('Error typing character:', error);
   }
 }
 
-// ain typing function
+/* ---------- main typing functions ---------- */
 function typeNextCharacter() {
   console.log('typeNextCharacter called, state:', typingState);
   
@@ -288,6 +175,7 @@ function typeNextCharacter() {
     console.log('Finished typing all characters');
     typingState.isTyping = false;
     typingState.currentIndex = 0;
+    chrome.runtime.sendMessage({ done: true });
     return;
   }
   
@@ -308,7 +196,6 @@ function typeNextCharacter() {
   typingState.timeoutId = setTimeout(typeNextCharacter, delay);
 }
 
-// Start typing
 function startTyping(text, wpm) {
   console.log('Starting typing with text:', text, 'WPM:', wpm);
   
@@ -347,7 +234,6 @@ function startTyping(text, wpm) {
   return { success: true };
 }
 
-// Pause typing
 function pauseTyping() {
   if (typingState.isTyping && !typingState.isPaused) {
     typingState.isPaused = true;
@@ -358,7 +244,6 @@ function pauseTyping() {
   }
 }
 
-// Resume typing
 function resumeTyping() {
   if (typingState.isTyping && typingState.isPaused) {
     typingState.isPaused = false;
@@ -366,7 +251,6 @@ function resumeTyping() {
   }
 }
 
-// Stop typing
 function stopTyping() {
   if (typingState.timeoutId) {
     clearTimeout(typingState.timeoutId);
@@ -381,64 +265,49 @@ function stopTyping() {
   };
 }
 
-// Setup message listener
-function setupMessageListener() {
-  console.log('Setting up message listener...');
+/* ---------- message handling ---------- */
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('Content script received message:', request);
   
-  // Check if Chrome APIs are available
-  if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.onMessage) {
-    console.error('Chrome APIs not available in content script');
-    return;
+  switch (request.action) {
+    case 'ping':
+      console.log('Ping received, responding with pong');
+      sendResponse({ message: 'pong', timestamp: Date.now() });
+      break;
+      
+    case 'start':
+      const result = startTyping(request.text, request.wpm);
+      sendResponse(result);
+      break;
+      
+    case 'pause':
+      pauseTyping();
+      sendResponse({ success: true });
+      break;
+      
+    case 'resume':
+      resumeTyping();
+      sendResponse({ success: true });
+      break;
+      
+    case 'stop':
+      stopTyping();
+      sendResponse({ success: true });
+      break;
+      
+    case 'status':
+      sendResponse({ isTyping: typingState.isTyping });
+      break;
+      
+    default:
+      sendResponse({ error: 'Unknown action' });
   }
   
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    console.log('Content script received message:', request);
-    
-    switch (request.action) {
-      case 'ping':
-        console.log('Ping received, responding with pong');
-        sendResponse({ message: 'pong', timestamp: Date.now() });
-        break;
-        
-      case 'start':
-        const result = startTyping(request.text, request.wpm);
-        sendResponse(result);
-        break;
-        
-      case 'pause':
-        pauseTyping();
-        sendResponse({ success: true });
-        break;
-        
-      case 'resume':
-        resumeTyping();
-        sendResponse({ success: true });
-        break;
-        
-      case 'stop':
-        stopTyping();
-        sendResponse({ success: true });
-        break;
-        
-      case 'status':
-        sendResponse({ isTyping: typingState.isTyping });
-        break;
-        
-      default:
-        sendResponse({ error: 'Unknown action' });
-    }
-    
-    return true; // Keep message channel open for async response
-  });
-  
-  console.log('Message listener setup complete');
-}
+  return true; // Keep message channel open for async response
+});
 
-// Initialize the content script
-console.log('Character-by-Character Text Input content script loaded');
-
-// Setup message listener immediately
-setupMessageListener();
+/* ---------- initialization ---------- */
+console.log('AutoScribe content script loaded');
 
 // Add a simple test to verify the content script is working
 window.addEventListener('load', () => {
@@ -447,8 +316,8 @@ window.addEventListener('load', () => {
   // Test if we can find the Google Docs editor
   const editor = findGoogleDocsEditor();
   if (editor) {
-    console.log('âœ… Google Docs editor found:', editor);
+    console.log('✅ Google Docs editor found:', editor);
   } else {
-    console.log('âŒ Google Docs editor not found');
+    console.log('❌ Google Docs editor not found');
   }
 }); 
