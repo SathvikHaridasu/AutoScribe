@@ -1,17 +1,75 @@
-# AutoScribe Chrome Extension
+# AutoScribe - Automated Typing Tool
 
-A Chrome extension that simulates realistic character-by-character typing in Google Docs, perfect for creating authentic typing demonstrations or educational content.
+A desktop application that simulates real keyboard input for automated typing in any application. Perfect for tasks requiring repetitive typing, testing, or demonstrations.
 
-## ✨ Features
+## Features
 
-- **Character-by-Character Typing Simulation** in Google Docs
-- **Human-like Typing Patterns** with natural pauses and speed variations
-- **Configurable Typing Speed** (10 - 200 WPM)
+- **Universal Compatibility**: Works with any application that accepts keyboard input (Google Docs, Microsoft Word, Notepad, etc.)
+- **Real Keyboard Simulation**: Uses system-level keyboard events for reliable input
+- **Human-like Typing**: Natural typing patterns with random delays
+- **Adjustable Speed**: Configure typing speed from 1 to 200 WPM
+- **Global Hotkeys**: Control the application from any window
+- **Safety Features**: 
+  - Emergency stop by moving mouse to screen corner
+  - Stop hotkey works globally
+  - Configurable countdown delay
+- **User-Friendly Interface**: Clean GUI with clear controls and status indicators
+
+## Requirements
+
+- Python 3.x
+- Required packages:
+  ```
+  pip install pyautogui keyboard
+  ```
+
+## Installation
+
+1. Clone or download this repository
+2. Install the required packages:
+   ```
+   pip install pyautogui keyboard
+   ```
+3. Run the application:
+   ```
+   python autoscribe.py
+   ```
+
+## Usage
+
+1. Launch AutoScribe
+2. Enter or paste the text you want to type
+3. Adjust the typing speed (WPM)
+4. Set your countdown delay (time to switch windows)
+5. Click Start or press F6
+6. Switch to your target application during the countdown
+7. Watch as the text is typed automatically
+
+## Default Hotkeys
+
+- **F6**: Start typing
+- **F7**: Stop typing
+- **F8**: Pause/Resume typing
+
+Hotkeys can be customized in the Settings menu.
+
+## Safety Features
+
+- Move mouse to any corner of the screen to force-stop typing
+- Global stop hotkey (F7) works at any time
+- Configurable start delay for safe window switching
+- Pause/Resume functionality
+
+## Notes
+
+- Run as administrator if typing into elevated applications
+- Use responsibly and in accordance with application terms of service
+- Test in a safe environment first to get familiar with the controls
 - **Full Control** - Start / Pause / Resume / Stop functionality
 - **Realistic Delays** with randomized timing to mimic human typing
 - **Modern UI** with beautiful gradient design and smooth animations
 
-## 🚀 Installation
+## Installation
 
 1. **Download/Clone** this repository to your local machine
 2. **Open Chrome** and navigate to `chrome://extensions/`
@@ -19,7 +77,7 @@ A Chrome extension that simulates realistic character-by-character typing in Goo
 4. **Click "Load unpacked"** and select the extension folder
 5. **Pin the extension** to your toolbar for easy access
 
-## 📖 Usage
+## Usage
 
 1. **Open Google Docs** (https://docs.google.com/document/)
 2. **Click the extension icon** in your Chrome toolbar
@@ -28,81 +86,3 @@ A Chrome extension that simulates realistic character-by-character typing in Goo
 5. **Click in your Google Doc** to position the cursor where you want typing to start
 6. **Click "Start Typing"** to begin the simulation
 7. **Use Pause/Resume/Stop** buttons to control the process
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-**Extension not working on Google Docs:**
-- Make sure you're on a Google Docs page (URL should start with `https://docs.google.com/document/`)
-- Try refreshing the page
-- Check that the extension is enabled in Chrome
-
-**Content script not responding:**
-- Click the "Test Connection" button in the popup
-- If it fails, refresh the Google Docs page and try again
-- Make sure you have the necessary permissions enabled
-
-**Typing not appearing:**
-- Ensure your cursor is positioned in the Google Docs editor
-- Try clicking in the document area first
-- Check that the document is not in read-only mode
-
-### Testing
-
-Open `test.html` in your browser to run diagnostic tests and verify the extension is working correctly.
-
-## 🛠️ Technical Details
-
-- **Manifest Version:** 3 (latest Chrome extension standard)
-- **Permissions:** `activeTab`, `scripting`, `tabs`
-- **Host Permissions:** `https://docs.google.com/*`
-- **Content Script:** Automatically injected on Google Docs pages
-- **Background Script:** Handles communication and tab management
-
-## 📝 File Structure
-
-```
-AutoScribe/
-├── manifest.json      # Extension configuration
-├── popup.html         # Extension popup interface
-├── popup.css          # Popup styling
-├── popup.js           # Popup functionality
-├── content.js         # Content script for Google Docs
-├── background.js      # Background service worker
-├── test.html          # Testing and diagnostics page
-└── README.md          # This file
-```
-
-## 🎯 How It Works
-
-The extension uses multiple methods to simulate typing in Google Docs:
-
-1. **execCommand API** - Primary method for text insertion
-2. **Selection API** - Fallback for cursor positioning
-3. **Input Events** - Simulates real keyboard input events
-4. **Focus Management** - Ensures proper editor focus
-
-The typing simulation includes:
-- **Realistic timing** based on WPM (words per minute)
-- **Random variations** to mimic human typing patterns
-- **Proper cursor positioning** and focus management
-- **Error handling** for different Google Docs states
-
-## 🔄 Recent Fixes
-
-- ✅ Fixed duplicate code and conflicting implementations
-- ✅ Added missing `typingState` variable declaration
-- ✅ Improved error handling and response formatting
-- ✅ Enhanced background script functionality
-- ✅ Added completion notification handling
-- ✅ Created comprehensive test page
-- ✅ Updated documentation and troubleshooting guide
-
-## 📄 License
-
-This project is open source and available under the MIT License.
-
-## 🤝 Contributing
-
-Feel free to submit issues, feature requests, or pull requests to improve the extension!
