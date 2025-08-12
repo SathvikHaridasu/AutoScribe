@@ -125,12 +125,12 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     document.body.appendChild(minimized);
     
     // Add event listeners
-    setupGUIEventListeners(guiContainer, minimized);
+    setupGUIEventListeners(guiContainer, minimized, header);
     
     return guiContainer;
   }
   
-  function setupGUIEventListeners(guiContainer, minimized) {
+  function setupGUIEventListeners(guiContainer, minimized, header) {
     const input = document.getElementById('autoScribeInput');
     const wpmSlider = document.getElementById('autoScribeWpm');
     const wpmValue = document.getElementById('autoScribeWpmValue');
@@ -141,7 +141,6 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     const resumeBtn = document.getElementById('autoScribeResume');
     const minimizeBtn = document.getElementById('autoScribeMinimize');
     const statusDiv = document.getElementById('autoScribeStatus');
-    const header = guiContainer.querySelector('div'); // Get the header div (first child)
     
     // Character count
     input.addEventListener('input', () => {
