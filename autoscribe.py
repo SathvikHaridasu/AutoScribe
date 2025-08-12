@@ -6,7 +6,13 @@ import threading
 import keyboard
 import json
 import os
+import random
 from pathlib import Path
+
+# Disable PyAutoGUI's pause between actions
+pyautogui.PAUSE = 0
+# Enable fail-safe (move mouse to corner to stop)
+pyautogui.FAILSAFE = True
 
 class AutoScribe:
     def __init__(self):
@@ -189,9 +195,19 @@ class AutoScribe:
             wpm = float(self.wpm_var.get())
         except ValueError:
             wpm = 60
-        cps = (wpm * 5) / 60  # characters per second
-        base_delay = 1 / cps
-        return base_delay * (0.8 + (0.4 * pyautogui.random.random()))
+        
+        # Ensure WPM is within reasonable bounds
+        wpm = max(1, min(wpm, 200))
+        
+        # Calculate characters per second
+        cps = (wpm * 5) / 60  # Using standard 5 characters per word
+        
+        # Calculate base delay between keystrokes
+        base_delay = 1 / cps if cps > 0 else 0.1
+        
+        # Add human-like randomness (between 80% and 120% of base delay)
+        random_factor = 0.8 + (0.4 * random.random())
+        return base_delay * random_factor
 
     def type_text(self):
         """The main typing function that runs in a separate thread"""
@@ -208,7 +224,23 @@ class AutoScribe:
         while self.current_index < len(self.text_to_type) and self.typing:
             if not self.paused:
                 char = self.text_to_type[self.current_index]
-                pyautogui.write(char, interval=self.calculate_delay())
+                
+                # Handle special characters
+                if char == '\n':
+                    keyboard.press_and_release('enter')
+                elif char == '\t':
+                    keyboard.press_and_release('tab')
+                elif char.isupper():
+                    # For uppercase characters, simulate shift + lowercase
+                    keyboard.press('shift')
+                    keyboard.press_and_release(char.lower())
+                    keyboard.release('shift')
+                else:
+                    # For normal characters, use direct key press
+                    keyboard.press_and_release(char)
+                
+                # Add delay between keystrokes
+                time.sleep(self.calculate_delay())
                 self.current_index += 1
             else:
                 time.sleep(0.1)  # Reduce CPU usage while paused
