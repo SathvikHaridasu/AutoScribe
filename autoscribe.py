@@ -17,6 +17,17 @@ pyautogui.FAILSAFE = True
 class AutoScribe:
     def __init__(self):
         self.root = tk.Tk()
+        self.root.title("AutoScribe")
+        
+        # Set the application icon
+        icon_path = Path(__file__).parent / "AutoScribe.png"
+        if icon_path.exists():
+            self.root.iconphoto(True, tk.PhotoImage(file=str(icon_path)))
+        
+        # Initialize variables
+        self.running = False
+        self.paused = False
+        self.root = tk.Tk()
         self.root.title("AutoScribe - Typing Simulator")
         self.root.geometry("600x500")
         
