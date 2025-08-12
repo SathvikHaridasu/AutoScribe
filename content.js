@@ -305,84 +305,30 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     
     // Method 2: Look for common text input selectors
     const commonSelectors = [
-      'input[type="text"]',
-      'input[type="email"]',
-      'input[type="password"]',
-      'input[type="search"]',
-      'input[type="url"]',
-      'input[type="tel"]',
-      'input[type="number"]',
+      'input[type="text"]', 'input[type="email"]', 'input[type="password"]', 'input[type="search"]', 'input[type="url"]', 'input[type="tel"]', 'input[type="number"]',
       'textarea',
-      '[contenteditable="true"]',
-      '[contenteditable="true"][role="textbox"]',
-      '.ql-editor', // Quill editor
-      '.ProseMirror', // ProseMirror editor
-      '.CodeMirror', // CodeMirror editor
-      '.ace_editor', // Ace editor
-      '.monaco-editor', // Monaco editor
-      '.kix-appview-editor-content', // Google Docs
-      '.kix-appview-editor-content .kix-lineview-content', // Google Docs
-      '.docs-textarea', // Google Docs
-      '.wysiwyg-editor', // WYSIWYG editors
-      '.rich-text-editor', // Rich text editors
-      '.text-editor', // Generic text editors
-      '.editor', // Generic editors
-      '.input', // Generic inputs
-      '.text-input', // Text inputs
-      '.form-control', // Bootstrap form controls
-      '.form-input', // Form inputs
-      '.search-input', // Search inputs
-      '.chat-input', // Chat inputs
-      '.message-input', // Message inputs
-      '.comment-input', // Comment inputs
-      '.post-input', // Post inputs
-      '.status-input', // Status inputs
-      '.tweet-input', // Twitter-like inputs
-      '.reply-input', // Reply inputs
-      '.note-input', // Note inputs
-      '.memo-input', // Memo inputs
-      '.draft-input', // Draft inputs
-      '.compose-input', // Compose inputs
-      '.write-input', // Write inputs
-      '.type-input', // Type inputs
-      '.enter-input', // Enter inputs
-      '.send-input', // Send inputs
-      '.submit-input', // Submit inputs
-      '.publish-input', // Publish inputs
-      '.share-input', // Share inputs
-      '.post-text', // Post text areas
-      '.message-text', // Message text areas
-      '.comment-text', // Comment text areas
-      '.reply-text', // Reply text areas
-      '.note-text', // Note text areas
-      '.memo-text', // Memo text areas
-      '.draft-text', // Draft text areas
-      '.compose-text', // Compose text areas
-      '.write-text', // Write text areas
-      '.type-text', // Type text areas
-      '.enter-text', // Enter text areas
-      '.send-text', // Send text areas
-      '.submit-text', // Submit text areas
-      '.publish-text', // Publish text areas
-      '.share-text' // Share text areas
+      '[contenteditable="true"]', '[contenteditable="true"][role="textbox"]',
+      '.ql-editor', '.ProseMirror', '.CodeMirror', '.ace_editor', '.monaco-editor',
+      '.kix-appview-editor-content', '.kix-appview-editor-content .kix-lineview-content', '.docs-textarea',
+      '.wysiwyg-editor', '.rich-text-editor', '.text-editor', '.editor', '.input', '.text-input',
+      '.form-control', '.form-input', '.search-input', '.chat-input', '.message-input', '.comment-input',
+      '.post-input', '.status-input', '.tweet-input', '.reply-input', '.note-input', '.memo-input',
+      '.draft-input', '.compose-input', '.write-input', '.type-input', '.enter-input', '.send-input',
+      '.submit-input', '.publish-input', '.share-input',
+      '.post-text', '.message-text', '.comment-text', '.reply-text', '.note-text', '.memo-text',
+      '.draft-text', '.compose-text', '.write-text', '.type-text', '.enter-text', '.send-text',
+      '.submit-text', '.publish-text', '.share-text'
     ];
     
     for (const selector of commonSelectors) {
       const elements = document.querySelectorAll(selector);
       for (const element of elements) {
-        // Skip hidden elements
-        if (element.offsetParent === null || 
-            element.style.display === 'none' || 
-            element.style.visibility === 'hidden' ||
-            element.hidden) {
+        if (element.offsetParent === null || element.style.display === 'none' || element.style.visibility === 'hidden' || element.hidden) {
           continue;
         }
-        
-        // Skip elements that are too small (likely not main input)
         if (element.offsetWidth < 50 || element.offsetHeight < 20) {
           continue;
         }
-        
         console.log('Found potential text input:', element);
         return element;
       }
@@ -391,12 +337,7 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     // Method 3: Look for any input or textarea
     const allInputs = document.querySelectorAll('input, textarea');
     for (const input of allInputs) {
-      if (input.offsetParent !== null && 
-          input.style.display !== 'none' && 
-          input.style.visibility !== 'hidden' &&
-          !input.hidden &&
-          input.offsetWidth >= 50 && 
-          input.offsetHeight >= 20) {
+      if (input.offsetParent !== null && input.style.display !== 'none' && input.style.visibility !== 'hidden' && !input.hidden && input.offsetWidth >= 50 && input.offsetHeight >= 20) {
         console.log('Found fallback input:', input);
         return input;
       }
@@ -405,12 +346,7 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     // Method 4: Look for any contenteditable element
     const allContentEditables = document.querySelectorAll('[contenteditable="true"]');
     for (const element of allContentEditables) {
-      if (element.offsetParent !== null && 
-          element.style.display !== 'none' && 
-          element.style.visibility !== 'hidden' &&
-          !element.hidden &&
-          element.offsetWidth >= 50 && 
-          element.offsetHeight >= 20) {
+      if (element.offsetParent !== null && element.style.display !== 'none' && element.style.visibility !== 'hidden' && !element.hidden && element.offsetWidth >= 50 && element.offsetHeight >= 20) {
         console.log('Found fallback contenteditable:', element);
         return element;
       }
@@ -480,7 +416,6 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     console.log('Typing character:', char);
     
     try {
-      // Focus the input first
       input.focus();
       
       // Method 1: For regular inputs and textareas, use value property
@@ -488,19 +423,12 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
         try {
           const currentValue = input.value || '';
           const cursorPos = input.selectionStart || currentValue.length;
-          
-          // Insert character at cursor position
           const newValue = currentValue.slice(0, cursorPos) + char + currentValue.slice(cursorPos);
           input.value = newValue;
-          
-          // Update cursor position
           const newCursorPos = cursorPos + 1;
           input.setSelectionRange(newCursorPos, newCursorPos);
-          
-          // Trigger input event
           input.dispatchEvent(new Event('input', { bubbles: true }));
           input.dispatchEvent(new Event('change', { bubbles: true }));
-          
           console.log('Text inserted via value property');
           return true;
         } catch (e) {
@@ -514,22 +442,12 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
           const selection = window.getSelection();
           if (selection.rangeCount > 0) {
             const range = selection.getRangeAt(0);
-            
-            // Create text node and insert it
             const textNode = document.createTextNode(char);
             range.insertNode(textNode);
-            
-            // Move cursor after the inserted text
             range.setStartAfter(textNode);
             range.setEndAfter(textNode);
-            
-            // Update selection
-            selection.removeAllRanges();
             selection.addRange(range);
-            
-            // Trigger input event
             input.dispatchEvent(new Event('input', { bubbles: true }));
-            
             console.log('Text inserted via DOM manipulation');
             return true;
           }
@@ -552,63 +470,16 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
       
       // Method 4: Simulate keyboard events
       const keyCode = char.charCodeAt(0);
-      
-      // Create keyboard events
-      const keydownEvent = new KeyboardEvent('keydown', {
-        key: char,
-        code: char.length === 1 ? `Key${char.toUpperCase()}` : 'Key' + char,
-        keyCode: keyCode,
-        which: keyCode,
-        bubbles: true,
-        cancelable: true,
-        composed: true,
-        isTrusted: false
-      });
-      
-      const keypressEvent = new KeyboardEvent('keypress', {
-        key: char,
-        code: char.length === 1 ? `Key${char.toUpperCase()}` : 'Key' + char,
-        keyCode: keyCode,
-        which: keyCode,
-        bubbles: true,
-        cancelable: true,
-        composed: true,
-        isTrusted: false
-      });
-      
-      const keyupEvent = new KeyboardEvent('keyup', {
-        key: char,
-        code: char.length === 1 ? `Key${char.toUpperCase()}` : 'Key' + char,
-        keyCode: keyCode,
-        which: keyCode,
-        bubbles: true,
-        cancelable: true,
-        composed: true,
-        isTrusted: false
-      });
-      
-      // Dispatch events to input
+      const keydownEvent = new KeyboardEvent('keydown', { key: char, code: char.length === 1 ? `Key${char.toUpperCase()}` : 'Key' + char, keyCode: keyCode, which: keyCode, bubbles: true, cancelable: true, composed: true, isTrusted: false });
+      const keypressEvent = new KeyboardEvent('keypress', { key: char, code: char.length === 1 ? `Key${char.toUpperCase()}` : 'Key' + char, keyCode: keyCode, which: keyCode, bubbles: true, cancelable: true, composed: true, isTrusted: false });
+      const keyupEvent = new KeyboardEvent('keyup', { key: char, code: char.length === 1 ? `Key${char.toUpperCase()}` : 'Key' + char, keyCode: keyCode, which: keyCode, bubbles: true, cancelable: true, composed: true, isTrusted: false });
       input.dispatchEvent(keydownEvent);
       input.dispatchEvent(keypressEvent);
       input.dispatchEvent(keyupEvent);
       
       // Method 5: Input events
-      const beforeInputEvent = new InputEvent('beforeinput', {
-        inputType: 'insertText',
-        data: char,
-        bubbles: true,
-        cancelable: true,
-        composed: true
-      });
-      
-      const inputEvent = new InputEvent('input', {
-        inputType: 'insertText',
-        data: char,
-        bubbles: true,
-        cancelable: true,
-        composed: true
-      });
-      
+      const beforeInputEvent = new InputEvent('beforeinput', { inputType: 'insertText', data: char, bubbles: true, cancelable: true, composed: true });
+      const inputEvent = new InputEvent('input', { inputType: 'insertText', data: char, bubbles: true, cancelable: true, composed: true });
       input.dispatchEvent(beforeInputEvent);
       input.dispatchEvent(inputEvent);
       
@@ -617,8 +488,8 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
       
     } catch (error) {
       console.error('Error typing character:', error);
-      return false;
     }
+    return false;
   }
   
   /* ---------- main typing functions ---------- */
