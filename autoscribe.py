@@ -128,20 +128,39 @@ class AutoScribe:
         self.text_input = tk.Text(main_frame, height=10, width=50)
         self.text_input.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E))
         
-        # WPM control
-        wpm_frame = ttk.Frame(main_frame)
-        wpm_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
+        # Speed control frame
+        speed_frame = ttk.LabelFrame(main_frame, text="Typing Speed Range", padding="5")
+        speed_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
         
-        ttk.Label(wpm_frame, text="Typing Speed (WPM):").pack(side=tk.LEFT)
-        self.wpm_var = tk.StringVar(value="60")
-        self.wpm_spinbox = ttk.Spinbox(
-            wpm_frame, 
-            from_=1, 
-            to=200, 
-            width=5, 
-            textvariable=self.wpm_var
-        )
-        self.wpm_spinbox.pack(side=tk.LEFT, padx=5)
+        # WPM inputs
+        wpm_frame = ttk.Frame(speed_frame)
+        wpm_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        # Min WPM
+        min_frame = ttk.Frame(wpm_frame)
+        min_frame.pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Label(min_frame, text="Min WPM:").pack(side=tk.LEFT)
+        ttk.Entry(min_frame, textvariable=self.min_wpm, width=5).pack(side=tk.LEFT, padx=5)
+        
+        # Max WPM
+        max_frame = ttk.Frame(wpm_frame)
+        max_frame.pack(side=tk.LEFT)
+        ttk.Label(max_frame, text="Max WPM:").pack(side=tk.LEFT)
+        ttk.Entry(max_frame, textvariable=self.max_wpm, width=5).pack(side=tk.LEFT, padx=5)
+        
+        # Validate WPM inputs
+        def validate_wpm(*args):
+            try:
+                min_wpm = self.min_wpm.get()
+                max_wpm = self.max_wpm.get()
+                if min_wpm > max_wpm:
+                    messagebox.showerror("Invalid Input", "Minimum WPM must be less than or equal to Maximum WPM")
+                    self.min_wpm.set(max_wpm)
+            except tk.TclError:
+                pass
+        
+        self.min_wpm.trace('w', validate_wpm)
+        self.max_wpm.trace('w', validate_wpm)
         
         # Control buttons
         btn_frame = ttk.Frame(main_frame)
@@ -247,31 +266,20 @@ class AutoScribe:
         return True
 
     def calculate_delay(self):
-        """Calculate human-like delay between keystrokes"""
-        try:
-            wpm = float(self.wpm_var.get())
-        except ValueError:
-            wpm = 60
+        """Calculate delay between keystrokes based on random WPM in range"""
+        min_wpm = self.min_wpm.get()
+        max_wpm = self.max_wpm.get()
         
-        # Ensure WPM is within reasonable bounds
-        wpm = max(1, min(wpm, 200))
+        # Get random WPM within range
+        random_wpm = random.uniform(min_wpm, max_wpm)
         
-        # Base delay calculation
-        cps = (wpm * 5) / 60  # standard 5 characters per word
-        base_delay = 1 / cps if cps > 0 else 0.1
+        # Convert WPM to milliseconds per character
+        chars_per_minute = random_wpm * 5  # Average word length of 5 characters
+        ms_per_char = 60000 / chars_per_minute
         
-        # Add natural variation (typing rhythm)
-        rhythm_variation = random.uniform(0.8, 1.2)
-        
-        # Occasionally add a longer pause (thinking pause)
-        if random.random() < 0.01:  # 1% chance of a longer pause
-            return base_delay * random.uniform(2, 4)
-        
-        # Occasionally add a shorter pause (quick typing burst)
-        if random.random() < 0.05:  # 5% chance of a quick burst
-            return base_delay * random.uniform(0.5, 0.8)
-        
-        return base_delay * rhythm_variation
+        # Add natural variation (±20%)
+        variation = ms_per_char * 0.2
+        return ms_per_char + random.uniform(-variation, variation)
 
     def get_context_aware_delay(self, char, prev_char=None, next_char=None):
         """Calculate delay based on character context"""
