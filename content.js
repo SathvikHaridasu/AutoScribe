@@ -16,7 +16,8 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
       isPaused: false,
       text: '',
       currentIndex: 0,
-      wpm: 60,
+      minWPM: 60,
+      maxWPM: 80,
       timeoutId: null,
       targetElement: null,
       retryCountForIndex: 0
@@ -305,7 +306,16 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
   }
   
   /* ---------- helper functions ---------- */
-  function calculateDelay(wpm) {
+    function calculateDelay() {
+    const state = window.autoScribeTypingState;
+    // Get a random WPM between min and max
+    const randomWPM = Math.floor(Math.random() * (state.maxWPM - state.minWPM + 1)) + state.minWPM;
+    // Convert WPM to milliseconds per character (60000 ms per minute / (WPM * 5 chars per word))
+    const baseDelay = 60000 / (randomWPM * 5);
+    // Add some natural variation (±20%)
+    const variation = baseDelay * 0.2;
+    return baseDelay + (Math.random() * variation * 2 - variation);
+  }
     // WPM = words per minute, so we need to convert to characters per second
     const charsPerSecond = (wpm * 5) / 60;
     const delayMs = 1000 / charsPerSecond;

@@ -39,7 +39,8 @@ class AutoScribe:
         self.paused = False
         self.text_to_type = ""
         self.current_index = 0
-        self.wpm = 60
+        self.min_wpm = tk.IntVar(value=60)
+        self.max_wpm = tk.IntVar(value=80)
         
         # Hotkey settings (with defaults)
         self.settings = {
@@ -67,6 +68,48 @@ class AutoScribe:
     def setup_ui(self):
         """Setup the user interface"""
         # Main frame
+        self.main_frame = ttk.Frame(self.root, padding="10")
+        self.main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Text input area
+        self.text_area = tk.Text(self.main_frame, height=10, width=50)
+        self.text_area.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        # Speed control frame
+        speed_frame = ttk.LabelFrame(self.main_frame, text="Typing Speed (WPM)", padding="5")
+        speed_frame.pack(fill=tk.X, pady=5)
+        
+        # Min WPM input
+        min_frame = ttk.Frame(speed_frame)
+        min_frame.pack(side=tk.LEFT, padx=5)
+        ttk.Label(min_frame, text="Min WPM:").pack(side=tk.LEFT)
+        min_wpm_entry = ttk.Entry(min_frame, textvariable=self.min_wpm, width=5)
+        min_wpm_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Max WPM input
+        max_frame = ttk.Frame(speed_frame)
+        max_frame.pack(side=tk.LEFT, padx=5)
+        ttk.Label(max_frame, text="Max WPM:").pack(side=tk.LEFT)
+        max_wpm_entry = ttk.Entry(max_frame, textvariable=self.max_wpm, width=5)
+        max_wpm_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Validate WPM inputs
+        def validate_wpm(*args):
+            try:
+                min_wpm = self.min_wpm.get()
+                max_wpm = self.max_wpm.get()
+                if min_wpm > max_wpm:
+                    messagebox.showerror("Invalid Input", "Minimum WPM must be less than or equal to Maximum WPM")
+                    self.min_wpm.set(max_wpm)
+            except tk.TclError:
+                pass  # Invalid integer input, ignore
+                
+        self.min_wpm.trace('w', validate_wpm)
+        self.max_wpm.trace('w', validate_wpm)
+        
+        # Control buttons
+        button_frame = ttk.Frame(self.main_frame)
+        button_frame.pack(fill=tk.X, pady=5)
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
