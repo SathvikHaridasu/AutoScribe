@@ -1,0 +1,20 @@
+{
+  "manifest_version": 2,
+  "name": "AutoScribe",
+  "version": "1.0",
+  "description": "Text typing simulator for Google Docs",
+  "icons": {
+    "16": "AutoScribe.png",
+    "48": "AutoScribe.png",
+    "128": "AutoScribe.png"
+  },
+  "permissions": ["activeTab"],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "content_scripts": [{
+    "matches": ["*://docs.google.com/*"],
+    "js": ["content.js"]
+  }]
+}
