@@ -17,9 +17,36 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
       text: '',
       currentIndex: 0,
       wpm: 60,
-      timeoutId: null
+      timeoutId: null,
+      targetElement: null,
+      retryCountForIndex: 0
     };
   }
+
+  // Track last active editable element outside of our GUI so we can resume reliably
+  if (typeof window.autoScribeLastActiveInput === 'undefined') {
+    window.autoScribeLastActiveInput = null;
+  }
+
+  function isInsideGUI(node) {
+    return !!(node && (node.closest && node.closest('#autoScribeFloatingGUI')));
+  }
+
+  function isEditableElement(el) {
+    if (!el) return false;
+    const tag = el.tagName;
+    const isInput = tag === 'INPUT' || tag === 'TEXTAREA';
+    const isContentEditable = el.contentEditable === 'true' || el.getAttribute('contenteditable') === 'true';
+    return (isInput || isContentEditable);
+  }
+
+  // Listen for focus events to remember where the user was typing
+  document.addEventListener('focusin', (e) => {
+    const target = e.target;
+    if (!isInsideGUI(target) && isEditableElement(target)) {
+      window.autoScribeLastActiveInput = target;
+    }
+  }, true);
   
   // Create floating GUI overlay
   function createFloatingGUI() {
@@ -293,7 +320,7 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     
     // Method 1: Check if there's already a focused element
     const activeElement = document.activeElement;
-    if (activeElement && (
+    if (activeElement && !isInsideGUI(activeElement) && (
         activeElement.tagName === 'INPUT' || 
         activeElement.tagName === 'TEXTAREA' || 
         activeElement.contentEditable === 'true' ||
@@ -301,6 +328,12 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     )) {
       console.log('Found active text input:', activeElement);
       return activeElement;
+    }
+
+    // Prefer last known user-focused input if available
+    if (window.autoScribeLastActiveInput && document.contains(window.autoScribeLastActiveInput)) {
+      console.log('Using last active input:', window.autoScribeLastActiveInput);
+      return window.autoScribeLastActiveInput;
     }
     
     // Method 2: Look for common text input selectors
@@ -323,6 +356,7 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     for (const selector of commonSelectors) {
       const elements = document.querySelectorAll(selector);
       for (const element of elements) {
+        if (isInsideGUI(element)) continue; // never type into our own GUI
         if (element.offsetParent === null || element.style.display === 'none' || element.style.visibility === 'hidden' || element.hidden) {
           continue;
         }
@@ -337,6 +371,7 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     // Method 3: Look for any input or textarea
     const allInputs = document.querySelectorAll('input, textarea');
     for (const input of allInputs) {
+      if (isInsideGUI(input)) continue;
       if (input.offsetParent !== null && input.style.display !== 'none' && input.style.visibility !== 'hidden' && !input.hidden && input.offsetWidth >= 50 && input.offsetHeight >= 20) {
         console.log('Found fallback input:', input);
         return input;
@@ -346,6 +381,7 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     // Method 4: Look for any contenteditable element
     const allContentEditables = document.querySelectorAll('[contenteditable="true"]');
     for (const element of allContentEditables) {
+      if (isInsideGUI(element)) continue;
       if (element.offsetParent !== null && element.style.display !== 'none' && element.style.visibility !== 'hidden' && !element.hidden && element.offsetWidth >= 50 && element.offsetHeight >= 20) {
         console.log('Found fallback contenteditable:', element);
         return element;
@@ -361,8 +397,10 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     
     try {
       // Click on the input to ensure focus
-      input.click();
-      input.focus();
+      if (document.contains(input)) {
+        input.click();
+        input.focus();
+      }
       
       // For contenteditable elements, position cursor at end
       if (input.contentEditable === 'true' || input.getAttribute('contenteditable') === 'true') {
@@ -416,6 +454,9 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     console.log('Typing character:', char);
     
     try {
+      if (!document.contains(input)) {
+        return false;
+      }
       input.focus();
       
       // Method 1: For regular inputs and textareas, use value property
@@ -536,7 +577,12 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
       return;
     }
     
-    const input = findActiveTextInput();
+    // Prefer locked target element captured at start
+    let input = typingState.targetElement;
+    if (!input || !document.contains(input)) {
+      input = window.autoScribeLastActiveInput || findActiveTextInput();
+      typingState.targetElement = input;
+    }
     if (!input) {
       console.error('Could not find active text input');
       return;
@@ -546,14 +592,28 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     console.log('Typing character:', char, 'at index:', typingState.currentIndex);
     
     // Try to type the character
+    // Ensure caret is at the end before attempting to type
+    focusTextInput(input);
+
     const success = typeCharacter(input, char);
     if (success) {
       console.log('Successfully typed character:', char);
+      typingState.retryCountForIndex = 0;
+      typingState.currentIndex++;
     } else {
       console.log('Failed to type character:', char);
+      // Retry a couple of times before advancing to avoid infinite loops
+      typingState.retryCountForIndex = (typingState.retryCountForIndex || 0) + 1;
+      if (typingState.retryCountForIndex <= 2) {
+        const retryDelay = 50;
+        typingState.timeoutId = setTimeout(typeNextCharacter, retryDelay);
+        return;
+      } else {
+        // Give up on this char to avoid stalling completely
+        typingState.retryCountForIndex = 0;
+        typingState.currentIndex++;
+      }
     }
-    
-    typingState.currentIndex++;
     
     // Schedule next character
     const delay = calculateDelay(typingState.wpm);
@@ -566,7 +626,9 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     
     // Wait a bit for the page to be ready
     setTimeout(() => {
-      const input = findActiveTextInput();
+      // Lock onto the best candidate input, avoiding our GUI
+      const preferred = window.autoScribeLastActiveInput;
+      const input = (preferred && document.contains(preferred)) ? preferred : findActiveTextInput();
       if (!input) {
         console.error('No text input found');
         return { error: 'Could not find any text input. Please click on a text field first.' };
@@ -574,8 +636,9 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
       
       console.log('Found input:', input);
       
-      // Stop any existing typing
+      // Stop any existing typing but preserve last active element
       stopTyping();
+      window.autoScribeTypingState.targetElement = input;
       
       // Try to paste the entire text first (faster method)
       try {
@@ -634,7 +697,9 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
       text: text,
       currentIndex: 0,
       wpm: wpm,
-      timeoutId: null
+      timeoutId: null,
+      targetElement: input,
+      retryCountForIndex: 0
     };
     
     console.log('Typing state initialized:', window.autoScribeTypingState);
@@ -654,6 +719,7 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
         clearTimeout(typingState.timeoutId);
         typingState.timeoutId = null;
       }
+      // Do not modify currentIndex so resume continues where it left off
     }
   }
   
@@ -661,6 +727,13 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     const typingState = window.autoScribeTypingState;
     if (typingState.isTyping && typingState.isPaused) {
       typingState.isPaused = false;
+      // Ensure we still have a valid target and focus it
+      if (!typingState.targetElement || !document.contains(typingState.targetElement)) {
+        typingState.targetElement = window.autoScribeLastActiveInput || findActiveTextInput();
+      }
+      if (typingState.targetElement) {
+        focusTextInput(typingState.targetElement);
+      }
       typeNextCharacter();
     }
   }
@@ -676,7 +749,9 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
       text: '',
       currentIndex: 0,
       wpm: 60,
-      timeoutId: null
+      timeoutId: null,
+      targetElement: null,
+      retryCountForIndex: 0
     };
   }
   

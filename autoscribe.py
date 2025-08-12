@@ -293,12 +293,10 @@ class AutoScribe:
                 elif char.isupper():
                     # Slightly slower typing for uppercase letters
                     time.sleep(random.uniform(0.05, 0.1))
-                    keyboard.press('shift')
-                    keyboard.press_and_release(char.lower())
-                    keyboard.release('shift')
+                    keyboard.write(char)
                 else:
-                    # For normal characters, use direct key press
-                    keyboard.press_and_release(char)
+                    # Use write() which handles special characters more reliably than press_and_release
+                    keyboard.write(char)
                 
                 # Get context-aware delay
                 delay = self.get_context_aware_delay(char, prev_char, next_char)
