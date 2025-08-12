@@ -16,20 +16,23 @@ pyautogui.FAILSAFE = True
 
 class AutoScribe:
     def __init__(self):
+        # Initialize the main window
         self.root = tk.Tk()
-        self.root.title("AutoScribe")
+        self.root.title("AutoScribe - Typing Simulator")
+        self.root.geometry("600x500")
         
-        # Set the application icon
-        icon_path = Path(__file__).parent / "AutoScribe.png"
-        if icon_path.exists():
-            self.root.iconphoto(True, tk.PhotoImage(file=str(icon_path)))
+        # Set window icon (if available)
+        try:
+            icon_path = Path(__file__).parent / "AutoScribe.png"
+            if icon_path.exists():
+                icon = tk.PhotoImage(file=str(icon_path))
+                self.root.iconphoto(True, icon)
+        except Exception:
+            pass  # Icon setting is not critical
         
         # Initialize variables
         self.running = False
         self.paused = False
-        self.root = tk.Tk()
-        self.root.title("AutoScribe - Typing Simulator")
-        self.root.geometry("600x500")
         
         # State variables
         self.typing = False
@@ -201,7 +204,7 @@ class AutoScribe:
         return True
 
     def calculate_delay(self):
-        """Calculate delay between keystrokes based on WPM"""
+        """Calculate human-like delay between keystrokes"""
         try:
             wpm = float(self.wpm_var.get())
         except ValueError:
@@ -210,15 +213,50 @@ class AutoScribe:
         # Ensure WPM is within reasonable bounds
         wpm = max(1, min(wpm, 200))
         
-        # Calculate characters per second
-        cps = (wpm * 5) / 60  # Using standard 5 characters per word
-        
-        # Calculate base delay between keystrokes
+        # Base delay calculation
+        cps = (wpm * 5) / 60  # standard 5 characters per word
         base_delay = 1 / cps if cps > 0 else 0.1
         
-        # Add human-like randomness (between 80% and 120% of base delay)
-        random_factor = 0.8 + (0.4 * random.random())
-        return base_delay * random_factor
+        # Add natural variation (typing rhythm)
+        rhythm_variation = random.uniform(0.8, 1.2)
+        
+        # Occasionally add a longer pause (thinking pause)
+        if random.random() < 0.01:  # 1% chance of a longer pause
+            return base_delay * random.uniform(2, 4)
+        
+        # Occasionally add a shorter pause (quick typing burst)
+        if random.random() < 0.05:  # 5% chance of a quick burst
+            return base_delay * random.uniform(0.5, 0.8)
+        
+        return base_delay * rhythm_variation
+
+    def get_context_aware_delay(self, char, prev_char=None, next_char=None):
+        """Calculate delay based on character context"""
+        base_delay = self.calculate_delay()
+        
+        # Common character pairs get typed faster
+        common_pairs = {
+            'th': 0.85, 'he': 0.85, 'an': 0.85, 'in': 0.85, 'er': 0.85,
+            'on': 0.85, 'at': 0.85, 'nd': 0.85, 'st': 0.85, 'es': 0.85,
+            'en': 0.85, 'of': 0.85, 'te': 0.85, 'ed': 0.85, 'ti': 0.85,
+        }
+        
+        if prev_char and (prev_char + char).lower() in common_pairs:
+            return base_delay * common_pairs[(prev_char + char).lower()]
+        
+        # Slower typing for numbers and special characters
+        if char.isnumeric() or char in '!@#$%^&*()_+-=[]{}\\|;:\'",.<>/?':
+            return base_delay * random.uniform(1.2, 1.5)
+        
+        # Slight pause after punctuation
+        if prev_char in '.!?':
+            return base_delay * random.uniform(1.5, 2.0)
+        
+        # Faster typing for space after common words
+        if char == ' ' and prev_char in 'dtsn':  # Common word endings
+            return base_delay * 0.8
+        
+        return base_delay
 
     def type_text(self):
         """The main typing function that runs in a separate thread"""
@@ -231,18 +269,30 @@ class AutoScribe:
             return
 
         self.status_label.configure(text="Status: Typing...")
+        last_word_time = time.time()
         
         while self.current_index < len(self.text_to_type) and self.typing:
             if not self.paused:
                 char = self.text_to_type[self.current_index]
+                prev_char = self.text_to_type[self.current_index - 1] if self.current_index > 0 else None
+                next_char = self.text_to_type[self.current_index + 1] if self.current_index < len(self.text_to_type) - 1 else None
+                
+                # Add natural pauses between words
+                if char == ' ':
+                    word_gap = time.time() - last_word_time
+                    if word_gap > 0.5 and random.random() < 0.1:  # 10% chance of pause between words
+                        time.sleep(random.uniform(0.3, 0.7))
+                    last_word_time = time.time()
                 
                 # Handle special characters
                 if char == '\n':
                     keyboard.press_and_release('enter')
+                    time.sleep(random.uniform(0.5, 1.0))  # Longer pause after enter
                 elif char == '\t':
                     keyboard.press_and_release('tab')
                 elif char.isupper():
-                    # For uppercase characters, simulate shift + lowercase
+                    # Slightly slower typing for uppercase letters
+                    time.sleep(random.uniform(0.05, 0.1))
                     keyboard.press('shift')
                     keyboard.press_and_release(char.lower())
                     keyboard.release('shift')
@@ -250,8 +300,10 @@ class AutoScribe:
                     # For normal characters, use direct key press
                     keyboard.press_and_release(char)
                 
-                # Add delay between keystrokes
-                time.sleep(self.calculate_delay())
+                # Get context-aware delay
+                delay = self.get_context_aware_delay(char, prev_char, next_char)
+                time.sleep(delay)
+                
                 self.current_index += 1
             else:
                 time.sleep(0.1)  # Reduce CPU usage while paused
@@ -309,10 +361,17 @@ class AutoScribe:
         """Start the application"""
         self.root.mainloop()
 
+def main():
+    # Prevent multiple instances
+    try:
+        # Ensure pyautogui works safely
+        pyautogui.FAILSAFE = True
+        pyautogui.PAUSE = 0.001
+        
+        app = AutoScribe()
+        app.run()
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred: {str(e)}")
+
 if __name__ == "__main__":
-    # Ensure pyautogui works safely
-    pyautogui.FAILSAFE = True
-    pyautogui.PAUSE = 0.001
-    
-    app = AutoScribe()
-    app.run()
+    main()
