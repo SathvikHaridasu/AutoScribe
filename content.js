@@ -288,117 +288,259 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     return delayMs * variation;
   }
   
-  function findGoogleDocsEditor() {
-    console.log('Searching for Google Docs editor...');
+  function findActiveTextInput() {
+    console.log('Searching for active text input...');
     
-    // Wait for Google Docs to load
-    if (!document.querySelector('.kix-appview-editor')) {
-      console.log('Google Docs editor not yet loaded');
-      return null;
+    // Method 1: Check if there's already a focused element
+    const activeElement = document.activeElement;
+    if (activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' || 
+        activeElement.contentEditable === 'true' ||
+        activeElement.getAttribute('contenteditable') === 'true'
+    )) {
+      console.log('Found active text input:', activeElement);
+      return activeElement;
     }
     
-    // Try multiple selectors to find the actual editable content
-    const selectors = [
-      '.kix-lineview-content',
+    // Method 2: Look for common text input selectors
+    const commonSelectors = [
+      'input[type="text"]',
+      'input[type="email"]',
+      'input[type="password"]',
+      'input[type="search"]',
+      'input[type="url"]',
+      'input[type="tel"]',
+      'input[type="number"]',
+      'textarea',
+      '[contenteditable="true"]',
       '[contenteditable="true"][role="textbox"]',
-      '.kix-appview-editor-content',
-      '.docs-textarea',
-      '.kix-appview-editor-content .kix-lineview-content'
+      '.ql-editor', // Quill editor
+      '.ProseMirror', // ProseMirror editor
+      '.CodeMirror', // CodeMirror editor
+      '.ace_editor', // Ace editor
+      '.monaco-editor', // Monaco editor
+      '.kix-appview-editor-content', // Google Docs
+      '.kix-appview-editor-content .kix-lineview-content', // Google Docs
+      '.docs-textarea', // Google Docs
+      '.wysiwyg-editor', // WYSIWYG editors
+      '.rich-text-editor', // Rich text editors
+      '.text-editor', // Generic text editors
+      '.editor', // Generic editors
+      '.input', // Generic inputs
+      '.text-input', // Text inputs
+      '.form-control', // Bootstrap form controls
+      '.form-input', // Form inputs
+      '.search-input', // Search inputs
+      '.chat-input', // Chat inputs
+      '.message-input', // Message inputs
+      '.comment-input', // Comment inputs
+      '.post-input', // Post inputs
+      '.status-input', // Status inputs
+      '.tweet-input', // Twitter-like inputs
+      '.reply-input', // Reply inputs
+      '.note-input', // Note inputs
+      '.memo-input', // Memo inputs
+      '.draft-input', // Draft inputs
+      '.compose-input', // Compose inputs
+      '.write-input', // Write inputs
+      '.type-input', // Type inputs
+      '.enter-input', // Enter inputs
+      '.send-input', // Send inputs
+      '.submit-input', // Submit inputs
+      '.publish-input', // Publish inputs
+      '.share-input', // Share inputs
+      '.post-text', // Post text areas
+      '.message-text', // Message text areas
+      '.comment-text', // Comment text areas
+      '.reply-text', // Reply text areas
+      '.note-text', // Note text areas
+      '.memo-text', // Memo text areas
+      '.draft-text', // Draft text areas
+      '.compose-text', // Compose text areas
+      '.write-text', // Write text areas
+      '.type-text', // Type text areas
+      '.enter-text', // Enter text areas
+      '.send-text', // Send text areas
+      '.submit-text', // Submit text areas
+      '.publish-text', // Publish text areas
+      '.share-text' // Share text areas
     ];
     
-    for (const selector of selectors) {
-      const element = document.querySelector(selector);
-      if (element) {
-        console.log('Found editor element with selector:', selector);
+    for (const selector of commonSelectors) {
+      const elements = document.querySelectorAll(selector);
+      for (const element of elements) {
+        // Skip hidden elements
+        if (element.offsetParent === null || 
+            element.style.display === 'none' || 
+            element.style.visibility === 'hidden' ||
+            element.hidden) {
+          continue;
+        }
+        
+        // Skip elements that are too small (likely not main input)
+        if (element.offsetWidth < 50 || element.offsetHeight < 20) {
+          continue;
+        }
+        
+        console.log('Found potential text input:', element);
         return element;
       }
     }
     
-    // Try to find the main editor container
-    const editorContainer = document.querySelector('.kix-appview-editor');
-    if (editorContainer) {
-      console.log('Found editor container, using it directly');
-      return editorContainer;
+    // Method 3: Look for any input or textarea
+    const allInputs = document.querySelectorAll('input, textarea');
+    for (const input of allInputs) {
+      if (input.offsetParent !== null && 
+          input.style.display !== 'none' && 
+          input.style.visibility !== 'hidden' &&
+          !input.hidden &&
+          input.offsetWidth >= 50 && 
+          input.offsetHeight >= 20) {
+        console.log('Found fallback input:', input);
+        return input;
+      }
     }
     
-    console.log('No suitable editor found');
+    // Method 4: Look for any contenteditable element
+    const allContentEditables = document.querySelectorAll('[contenteditable="true"]');
+    for (const element of allContentEditables) {
+      if (element.offsetParent !== null && 
+          element.style.display !== 'none' && 
+          element.style.visibility !== 'hidden' &&
+          !element.hidden &&
+          element.offsetWidth >= 50 && 
+          element.offsetHeight >= 20) {
+        console.log('Found fallback contenteditable:', element);
+        return element;
+      }
+    }
+    
+    console.log('No suitable text input found');
     return null;
   }
   
-  function focusEditor(editor) {
-    console.log('Focusing editor');
+  function focusTextInput(input) {
+    console.log('Focusing text input');
     
     try {
-      // Click on the editor to ensure focus
-      editor.click();
-      editor.focus();
+      // Click on the input to ensure focus
+      input.click();
+      input.focus();
       
-      // Set cursor to end of content
-      const range = document.createRange();
-      const selection = window.getSelection();
-      
-      selection.removeAllRanges();
-      
-      // Find the last text node or create one
-      let targetNode = editor;
-      if (editor.childNodes.length > 0) {
-        const lastNode = editor.childNodes[editor.childNodes.length - 1];
-        if (lastNode.nodeType === Node.TEXT_NODE) {
-          targetNode = lastNode;
-          range.setStart(targetNode, targetNode.textContent.length);
-          range.setEnd(targetNode, targetNode.textContent.length);
-        } else {
-          range.setStartAfter(lastNode);
-          range.setEndAfter(lastNode);
+      // For contenteditable elements, position cursor at end
+      if (input.contentEditable === 'true' || input.getAttribute('contenteditable') === 'true') {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        
+        // Find the last text node
+        const textNodes = [];
+        const walker = document.createTreeWalker(
+          input,
+          NodeFilter.SHOW_TEXT,
+          null,
+          false
+        );
+        
+        let node;
+        while (node = walker.nextNode()) {
+          textNodes.push(node);
         }
+        
+        if (textNodes.length > 0) {
+          const lastTextNode = textNodes[textNodes.length - 1];
+          selection.removeAllRanges();
+          range.setStart(lastTextNode, lastTextNode.textContent.length);
+          range.setEnd(lastTextNode, lastTextNode.textContent.length);
+          selection.addRange(range);
+        } else {
+          // No text nodes, position at end of element
+          selection.removeAllRanges();
+          range.setStart(input, input.childNodes.length);
+          range.setEnd(input, input.childNodes.length);
+          selection.addRange(range);
+        }
+        
+        console.log('Cursor positioned at end of contenteditable');
       } else {
-        range.setStart(editor, 0);
-        range.setEnd(editor, 0);
+        // For regular inputs and textareas, position cursor at end
+        if (input.setSelectionRange) {
+          const length = input.value.length;
+          input.setSelectionRange(length, length);
+          console.log('Cursor positioned at end of input/textarea');
+        }
       }
-  
-      selection.addRange(range);
       
-      console.log('Editor focused and cursor positioned');
     } catch (error) {
-      console.error('Error focusing editor:', error);
+      console.error('Error focusing text input:', error);
     }
   }
   
-  function typeCharacter(editor, char) {
+  function typeCharacter(input, char) {
     console.log('Typing character:', char);
     
     try {
-      // Focus the editor first
-      editor.focus();
+      // Focus the input first
+      input.focus();
       
-      // Method 1: Try to insert text directly into the editor
-      try {
-        // Get current selection
-        const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
+      // Method 1: For regular inputs and textareas, use value property
+      if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
+        try {
+          const currentValue = input.value || '';
+          const cursorPos = input.selectionStart || currentValue.length;
           
-          // Create text node and insert it
-          const textNode = document.createTextNode(char);
-          range.insertNode(textNode);
+          // Insert character at cursor position
+          const newValue = currentValue.slice(0, cursorPos) + char + currentValue.slice(cursorPos);
+          input.value = newValue;
           
-          // Move cursor after the inserted text
-          range.setStartAfter(textNode);
-          range.setEndAfter(textNode);
+          // Update cursor position
+          const newCursorPos = cursorPos + 1;
+          input.setSelectionRange(newCursorPos, newCursorPos);
           
-          // Update selection
-          selection.removeAllRanges();
-          selection.addRange(range);
+          // Trigger input event
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
           
-          console.log('Text inserted via direct DOM manipulation');
+          console.log('Text inserted via value property');
           return true;
+        } catch (e) {
+          console.log('Value property insertion failed:', e);
         }
-      } catch (e) {
-        console.log('Direct DOM manipulation failed:', e);
       }
       
-      // Method 2: Try execCommand
+      // Method 2: For contenteditable elements, use DOM manipulation
+      if (input.contentEditable === 'true' || input.getAttribute('contenteditable') === 'true') {
+        try {
+          const selection = window.getSelection();
+          if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            
+            // Create text node and insert it
+            const textNode = document.createTextNode(char);
+            range.insertNode(textNode);
+            
+            // Move cursor after the inserted text
+            range.setStartAfter(textNode);
+            range.setEndAfter(textNode);
+            
+            // Update selection
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            // Trigger input event
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            console.log('Text inserted via DOM manipulation');
+            return true;
+          }
+        } catch (e) {
+          console.log('DOM manipulation failed:', e);
+        }
+      }
+      
+      // Method 3: Try execCommand
       try {
+        input.focus();
         const success = document.execCommand('insertText', false, char);
         if (success) {
           console.log('Text inserted via execCommand');
@@ -408,50 +550,10 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
         console.log('execCommand failed:', e);
       }
       
-      // Method 3: Try to find the actual textarea and simulate typing
-      const textArea = document.querySelector('.kix-lineview-content') ||
-                      document.querySelector('[contenteditable="true"][role="textbox"]') ||
-                      document.querySelector('.kix-appview-editor-content') ||
-                      editor;
-      
-      // Method 4: Try to find Google Docs specific elements
-      const googleDocsElements = [
-        document.querySelector('.kix-lineview-content'),
-        document.querySelector('.kix-appview-editor-content'),
-        document.querySelector('[contenteditable="true"][role="textbox"]'),
-        document.querySelector('.docs-textarea'),
-        document.querySelector('.kix-appview-editor-content .kix-lineview-content'),
-        document.querySelector('.kix-appview-editor-content .kix-lineview-content-wrapper'),
-        document.querySelector('.kix-appview-editor-content .kix-lineview-content-wrapper .kix-lineview-content')
-      ].filter(el => el !== null);
-      
-      // Try each Google Docs element
-      for (const element of googleDocsElements) {
-        try {
-          element.focus();
-          
-          // Try to insert text directly
-          if (element.textContent !== undefined) {
-            element.textContent += char;
-            console.log('Text inserted via textContent modification on:', element);
-            return true;
-          }
-          
-          // Try to set innerHTML
-          if (element.innerHTML !== undefined) {
-            element.innerHTML += char;
-            console.log('Text inserted via innerHTML modification on:', element);
-            return true;
-          }
-        } catch (e) {
-          console.log('Failed to modify element:', element, e);
-        }
-      }
-      
-      // Method 5: Simulate keyboard events more realistically
+      // Method 4: Simulate keyboard events
       const keyCode = char.charCodeAt(0);
       
-      // Create more realistic keyboard events
+      // Create keyboard events
       const keydownEvent = new KeyboardEvent('keydown', {
         key: char,
         code: char.length === 1 ? `Key${char.toUpperCase()}` : 'Key' + char,
@@ -485,16 +587,12 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
         isTrusted: false
       });
       
-      // Dispatch events to all possible elements
-      [textArea, ...googleDocsElements].forEach(element => {
-        if (element) {
-          element.dispatchEvent(keydownEvent);
-          element.dispatchEvent(keypressEvent);
-          element.dispatchEvent(keyupEvent);
-        }
-      });
+      // Dispatch events to input
+      input.dispatchEvent(keydownEvent);
+      input.dispatchEvent(keypressEvent);
+      input.dispatchEvent(keyupEvent);
       
-      // Method 6: Input events
+      // Method 5: Input events
       const beforeInputEvent = new InputEvent('beforeinput', {
         inputType: 'insertText',
         data: char,
@@ -511,15 +609,12 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
         composed: true
       });
       
-      [textArea, ...googleDocsElements].forEach(element => {
-        if (element) {
-          element.dispatchEvent(beforeInputEvent);
-          element.dispatchEvent(inputEvent);
-        }
-      });
+      input.dispatchEvent(beforeInputEvent);
+      input.dispatchEvent(inputEvent);
       
-      console.log('Character typing completed');
-      return false;
+      console.log('Keyboard events dispatched to input');
+      return true;
+      
     } catch (error) {
       console.error('Error typing character:', error);
       return false;
@@ -570,9 +665,9 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
       return;
     }
     
-    const editor = findGoogleDocsEditor();
-    if (!editor) {
-      console.error('Could not find Google Docs editor');
+    const input = findActiveTextInput();
+    if (!input) {
+      console.error('Could not find active text input');
       return;
     }
     
@@ -580,7 +675,7 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     console.log('Typing character:', char, 'at index:', typingState.currentIndex);
     
     // Try to type the character
-    const success = typeCharacter(editor, char);
+    const success = typeCharacter(input, char);
     if (success) {
       console.log('Successfully typed character:', char);
     } else {
@@ -598,15 +693,15 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
   function startTyping(text, wpm) {
     console.log('Starting typing with text:', text, 'WPM:', wpm);
     
-    // Wait a bit for Google Docs to be ready
+    // Wait a bit for the page to be ready
     setTimeout(() => {
-      const editor = findGoogleDocsEditor();
-      if (!editor) {
-        console.error('No editor found');
-        return { error: 'Could not find Google Docs editor. Please make sure you are on a Google Docs page.' };
+      const input = findActiveTextInput();
+      if (!input) {
+        console.error('No text input found');
+        return { error: 'Could not find any text input. Please click on a text field first.' };
       }
       
-      console.log('Found editor:', editor);
+      console.log('Found input:', input);
       
       // Stop any existing typing
       stopTyping();
@@ -615,8 +710,8 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
       try {
         console.log('Attempting to paste entire text...');
         
-        // Focus the editor
-        focusEditor(editor);
+        // Focus the input
+        focusTextInput(input);
         
         // Try to paste using clipboard API
         navigator.clipboard.writeText(text).then(() => {
@@ -632,31 +727,33 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
             composed: true
           });
           
-          editor.dispatchEvent(pasteEvent);
-          console.log('Paste event dispatched');
+          // Dispatch paste event to input
+          input.dispatchEvent(pasteEvent);
+          
+          console.log('Paste event dispatched to input');
           
           // If paste doesn't work, fall back to character-by-character typing
           setTimeout(() => {
             if (!window.autoScribeTypingState.isTyping) {
               console.log('Paste failed, falling back to character typing');
-              startCharacterTyping(text, wpm, editor);
+              startCharacterTyping(text, wpm, input);
             }
-          }, 500);
+          }, 500); // Reduced timeout for faster fallback
         }).catch(() => {
           console.log('Clipboard API failed, using character typing');
-          startCharacterTyping(text, wpm, editor);
+          startCharacterTyping(text, wpm, input);
         });
         
       } catch (e) {
         console.log('Paste method failed, using character typing:', e);
-        startCharacterTyping(text, wpm, editor);
+        startCharacterTyping(text, wpm, input);
       }
-    }, 1000); // Wait 1 second for Google Docs to be ready
+    }, 500); // Reduced wait time for faster response
     
     return { success: true };
   }
   
-  function startCharacterTyping(text, wpm, editor) {
+  function startCharacterTyping(text, wpm, input) {
     console.log('Starting character-by-character typing');
     
     // Initialize typing state
@@ -671,8 +768,8 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
     
     console.log('Typing state initialized:', window.autoScribeTypingState);
     
-    // Focus the editor
-    focusEditor(editor);
+    // Focus the input
+    focusTextInput(input);
     
     // Start typing
     typeNextCharacter();
@@ -769,18 +866,18 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
   window.addEventListener('load', () => {
     console.log('Page fully loaded, creating floating GUI...');
     
-    // Wait a bit for Google Docs to fully load
+    // Wait a bit for the page to fully load
     setTimeout(() => {
       createFloatingGUI();
       
-      // Test if we can find the Google Docs editor
-      const editor = findGoogleDocsEditor();
-      if (editor) {
-        console.log('✅ Google Docs editor found:', editor);
+      // Test if we can find any text inputs
+      const input = findActiveTextInput();
+      if (input) {
+        console.log('✅ Text input found:', input);
       } else {
-        console.log('❌ Google Docs editor not found');
+        console.log('❌ No text input found on this page');
       }
-    }, 2000);
+    }, 1000);
   });
   
   // Also check when DOM is ready

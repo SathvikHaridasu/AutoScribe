@@ -102,7 +102,7 @@ async function ensureContentScriptInjected(tabId) {
       console.log('Content script injection results:', results);
       
       // Wait a bit for the content script to initialize
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Test if the injection worked
       const testResponse = await new Promise((resolve, reject) => {
@@ -142,7 +142,7 @@ async function sendMessageWithRetry(tabId, message, maxRetries = 3) {
       // Ensure content script is injected
       const injected = await ensureContentScriptInjected(tabId);
       if (!injected) {
-        throw new Error('Failed to inject content script. Please refresh the Google Docs page.');
+        throw new Error('Failed to inject content script. Please refresh the page.');
       }
       
       // Send the message
@@ -200,8 +200,8 @@ startBtn.addEventListener('click', async () => {
     const tab = tabs[0];
     console.log('Current tab:', tab);
     
-    if (!tab.url || !tab.url.startsWith('https://docs.google.com/document/')) {
-      showError('Please use this extension on a Google Docs page.');
+    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+      showError('Please use this extension on a regular website.');
       return;
     }
     
@@ -216,11 +216,13 @@ startBtn.addEventListener('click', async () => {
     
     if (response && response.error) {
       showError(response.error);
+      setButtons('idle');
       return;
     }
     
     if (response && response.success === false) {
       showError(response.error || 'Failed to start typing');
+      setButtons('idle');
       return;
     }
     
@@ -242,6 +244,8 @@ startBtn.addEventListener('click', async () => {
         clearInterval(checkCompletion);
         console.error('Error checking status:', error);
         setButtons('idle');
+        showError('Typing completed or interrupted.', true);
+        setTimeout(clearError, 3000);
       }
     }, 1000);
     
@@ -305,18 +309,18 @@ testBtn.addEventListener('click', async () => {
     const tab = tabs[0];
     console.log('Current tab:', tab);
     
-    if (!tab.url || !tab.url.startsWith('https://docs.google.com/document/')) {
-      showError('Please use this extension on a Google Docs page.');
+    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+      showError('Please use this extension on a regular website.');
       return;
     }
     
     // Check if content script is available
     console.log('Testing content script availability...');
     const available = await ensureContentScriptInjected(tab.id);
-    if (!available) {
-      showError('Content script not available. Please refresh the Google Docs page and try again.');
-      return;
-    }
+          if (!available) {
+        showError('Content script not available. Please refresh the page and try again.');
+        return;
+      }
     
     console.log('Sending ping to content script...');
     const response = await sendMessageWithRetry(tab.id, {action: 'ping'});
