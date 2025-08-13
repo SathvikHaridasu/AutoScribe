@@ -28,7 +28,6 @@ class AutoScribe:
         self.min_wpm = tk.IntVar(value=60)
         self.max_wpm = tk.IntVar(value=80)
         
-<<<<<<< HEAD
         # Typing pattern variables
         self.current_wpm = 60
         self.target_wpm = 60  # Target speed to gradually move towards
@@ -38,8 +37,6 @@ class AutoScribe:
         self.next_pause_after_words = random.randint(3, 8)
         self.burst_mode = False  # For sudden speed bursts
         
-=======
->>>>>>> fd8b576b1f2f3401c3a1a306708e1625064e2a6d
         # Load settings and setup UI
         self.load_settings()
         self.setup_ui()
@@ -166,7 +163,6 @@ class AutoScribe:
         keyboard.add_hotkey(self.pause_key, self.toggle_pause)
 
     def calculate_delay(self):
-<<<<<<< HEAD
         """Calculate delay between keystrokes with dynamic speed changes"""
         min_wpm = self.min_wpm.get()
         max_wpm = self.max_wpm.get()
@@ -217,22 +213,6 @@ class AutoScribe:
             actual_delay += random.uniform(100, 300)  # Add 0.1-0.3 second pause
             
         return actual_delay
-=======
-        """Calculate delay between keystrokes based on random WPM in range"""
-        min_wpm = self.min_wpm.get()
-        max_wpm = self.max_wpm.get()
-        
-        # Get random WPM within range
-        random_wpm = random.uniform(min_wpm, max_wpm)
-        
-        # Convert WPM to milliseconds per character
-        chars_per_minute = random_wpm * 5  # Average word length of 5 characters
-        ms_per_char = 60000 / chars_per_minute
-        
-        # Add natural variation (±20%)
-        variation = ms_per_char * 0.2
-        return ms_per_char + random.uniform(-variation, variation)
->>>>>>> fd8b576b1f2f3401c3a1a306708e1625064e2a6d
 
     def start_typing(self):
         """Start the typing process"""
@@ -247,6 +227,12 @@ class AutoScribe:
         self.typing = True
         self.paused = False
         self.current_index = 0
+        
+        # Reset typing pattern variables
+        self.current_wpm = (self.min_wpm.get() + self.max_wpm.get()) / 2  # Start at middle speed
+        self.chars_typed_at_current_speed = 0
+        self.words_typed_since_last_pause = 0
+        self.next_pause_after_words = random.randint(1, 8)
         
         # Update UI
         self.start_button.config(state=tk.DISABLED)
@@ -269,16 +255,15 @@ class AutoScribe:
             self.status_label.config(text="Status: Typing...")
 
     def type_text(self):
-<<<<<<< HEAD
         """Type out the text with random delays and word pauses"""
-=======
-        """Type out the text with random delays"""
->>>>>>> fd8b576b1f2f3401c3a1a306708e1625064e2a6d
         time.sleep(3)  # Initial delay for countdown
+        
+        # Initialize word tracking
+        current_word = []
+        
         while self.current_index < len(self.text_to_type) and self.typing:
             if not self.paused:
                 char = self.text_to_type[self.current_index]
-<<<<<<< HEAD
                 
                 # Add character to current word
                 if char.isalnum() or char in "'-":
@@ -307,8 +292,6 @@ class AutoScribe:
                             continue
                 
                 # Type the character
-=======
->>>>>>> fd8b576b1f2f3401c3a1a306708e1625064e2a6d
                 pyautogui.write(char)
                 self.current_index += 1
                 
