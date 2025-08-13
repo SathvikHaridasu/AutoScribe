@@ -3,130 +3,641 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoScribe - Intelligent Typing Automation</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="icon" type="image/png" href="images/favicon.ico">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <script src="js/animations.js" defer></script>
-    <script src="js/cursor.js" defer></script>
+    <title>AutoScribe - The Future of Automated Typing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533a7d 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Animated background particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(64, 224, 255, 0.8);
+            border-radius: 50%;
+            animation: float 6s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* Glowing grid background */
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            background-image: 
+                linear-gradient(rgba(64, 224, 255, 0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(64, 224, 255, 0.3) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: 1;
+            animation: gridPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes gridPulse {
+            0%, 100% { opacity: 0.1; }
+            50% { opacity: 0.2; }
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 50px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(64, 224, 255, 0.2);
+            animation: slideDown 1s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #40e0ff, #9a4dff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(64, 224, 255, 0.5);
+        }
+
+        /* Main content */
+        .container {
+            position: relative;
+            z-index: 100;
+            padding: 120px 50px 50px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 100px;
+            animation: fadeInUp 1.2s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(50px);
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0);
+            }
+        }
+
+        .hero h1 {
+            font-size: 4.5rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #40e0ff, #9a4dff, #ff6b9d);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 50px rgba(64, 224, 255, 0.3);
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(64, 224, 255, 0.4)); }
+            50% { filter: drop-shadow(0 0 40px rgba(154, 77, 255, 0.6)); }
+        }
+
+        .hero .subtitle {
+            font-size: 1.4rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+
+        .typing-demo {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(64, 224, 255, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 50px auto;
+            max-width: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .typing-demo::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(64, 224, 255, 0.1), transparent);
+            animation: scanline 3s infinite;
+        }
+
+        @keyframes scanline {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .typing-text {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            color: #40e0ff;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 20px;
+            background: #40e0ff;
+            margin-left: 2px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .download-section {
+            text-align: center;
+            margin: 80px 0;
+        }
+
+        .download-btn {
+            display: inline-block;
+            padding: 20px 50px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            text-decoration: none;
+            color: #ffffff;
+            background: linear-gradient(45deg, #40e0ff, #9a4dff);
+            border-radius: 50px;
+            box-shadow: 
+                0 10px 30px rgba(64, 224, 255, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 10px 30px rgba(64, 224, 255, 0.3);
+            }
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 0 15px 40px rgba(64, 224, 255, 0.5);
+            }
+        }
+
+        .download-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 
+                0 20px 40px rgba(64, 224, 255, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .download-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .download-btn:hover::before {
+            left: 100%;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin: 80px 0;
+        }
+
+        .feature-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(64, 224, 255, 0.2);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #40e0ff, #9a4dff, #ff6b9d);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: rgba(64, 224, 255, 0.5);
+            box-shadow: 0 20px 40px rgba(64, 224, 255, 0.2);
+        }
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #40e0ff, #9a4dff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .feature-title {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: #40e0ff;
+        }
+
+        .feature-description {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+        }
+
+        .installation-section {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 60px;
+            margin: 80px 0;
+            border: 1px solid rgba(64, 224, 255, 0.1);
+        }
+
+        .installation-section h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 40px;
+            background: linear-gradient(45deg, #40e0ff, #9a4dff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .install-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .install-step {
+            background: rgba(64, 224, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            border: 1px solid rgba(64, 224, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .install-step:hover {
+            background: rgba(64, 224, 255, 0.1);
+            transform: translateY(-5px);
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, #40e0ff, #9a4dff);
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            line-height: 40px;
+            margin-bottom: 15px;
+        }
+
+        .step-title {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #40e0ff;
+        }
+
+        .tech-specs {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            padding: 40px;
+            margin: 60px 0;
+            border: 1px solid rgba(64, 224, 255, 0.2);
+        }
+
+        .tech-specs h3 {
+            color: #40e0ff;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .tech-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .tech-item {
+            padding: 10px 15px;
+            background: rgba(64, 224, 255, 0.1);
+            border-radius: 8px;
+            border-left: 3px solid #40e0ff;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container { padding: 100px 20px 50px; }
+            .hero h1 { font-size: 3rem; }
+            .hero .subtitle { font-size: 1.2rem; }
+            .header { padding: 15px 20px; }
+            .features-grid { grid-template-columns: 1fr; }
+            .installation-section { padding: 40px 20px; }
+        }
+    </style>
 </head>
 <body>
-    <div class="cursor"></div>
-    <nav>
-        <div class="nav-container">
-            <div class="logo">AutoScribe</div>
-            <div class="nav-links">
-                <a href="#features">Features</a>
-                <a href="#download">Download</a>
-                <a href="#docs">Documentation</a>
-            </div>
-        </div>
-    </nav>
+    <!-- Animated background elements -->
+    <div class="particles" id="particles"></div>
+    <div class="grid-bg"></div>
 
-    <header class="hero">
-        <div class="hero-content">
-            <h1>AutoScribe</h1>
-            <p class="tagline">Intelligent typing automation with human-like patterns</p>
-            <div class="cta-buttons">
-                <a href="https://github.com/SathvikHaridasu/AutoScribe/releases/latest/download/AutoScribe.exe" 
-                   class="download-button">
-                    Download for Windows
-                    <span class="version">v1.0.0</span>
-                </a>
-                <a href="https://github.com/SathvikHaridasu/AutoScribe" 
-                   class="github-button">
-                    View on GitHub
-                </a>
-            </div>
-        </div>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <div class="logo">AutoScribe</div>
+        </nav>
     </header>
 
-    <main>
-        <section id="features">
-            <h2>Features</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <h3>Human-like Typing</h3>
-                    <p>Natural typing patterns with realistic delays, pauses, and rhythm variations</p>
-                </div>
-                <div class="feature-card">
-                    <h3>Global Hotkeys</h3>
-                    <p>Control typing from anywhere with customizable keyboard shortcuts (F6, F7, F8)</p>
-                </div>
-                <div class="feature-card">
-                    <h3>Universal Compatibility</h3>
-                    <p>Works with any application that accepts keyboard input - text editors, forms, documents</p>
-                </div>
-                <div class="feature-card">
-                    <h3>Speed Control</h3>
-                    <p>Adjustable typing speed from 1-200 WPM with natural acceleration and deceleration</p>
-                </div>
-                <div class="feature-card">
-                    <h3>Safety Features</h3>
-                    <p>Emergency stop by moving mouse to corner, global stop hotkey, and pause functionality</p>
-                </div>
-                <div class="feature-card">
-                    <h3>Easy to Use</h3>
-                    <p>Simple interface with text input, speed control, and countdown timer for window switching</p>
+    <!-- Main content -->
+    <div class="container">
+        <section class="hero">
+            <h1>AutoScribe</h1>
+            <p class="subtitle">
+                Experience the future of automated typing. Precision-engineered for seamless integration 
+                across any application, with human-like intelligence and enterprise-grade reliability.
+            </p>
+            
+            <div class="typing-demo">
+                <div class="typing-text" id="typingText">
+                    <span class="cursor"></span>
                 </div>
             </div>
         </section>
 
-        <section id="download">
-            <h2>Getting Started</h2>
+        <section class="download-section">
+            <a href="../autoscribe.py" download="AutoScribe.py" class="download-btn">
+                ⚡ Download AutoScribe
+            </a>
+            <p style="margin-top: 20px; opacity: 0.7;">Windows • macOS • Linux | Free Download</p>
+        </section>
+
+        <section class="features-grid">
+            <div class="feature-card" style="animation-delay: 0.1s;">
+                <div class="feature-icon">🚀</div>
+                <h3 class="feature-title">Universal Compatibility</h3>
+                <p class="feature-description">
+                    Seamlessly integrates with any application - from Google Docs to professional IDEs. 
+                    Our advanced system-level integration ensures flawless performance everywhere.
+                </p>
+            </div>
+
+            <div class="feature-card" style="animation-delay: 0.2s;">
+                <div class="feature-icon">🧠</div>
+                <h3 class="feature-title">Human-Like Intelligence</h3>
+                <p class="feature-description">
+                    Advanced AI algorithms simulate natural typing patterns with randomized delays 
+                    and realistic keystroke timing for authentic automation.
+                </p>
+            </div>
+
+            <div class="feature-card" style="animation-delay: 0.3s;">
+                <div class="feature-icon">⚡</div>
+                <h3 class="feature-title">Lightning Performance</h3>
+                <p class="feature-description">
+                    Variable speed control from 1-200 WPM with real-time adjustment. 
+                    Optimized for both precision tasks and high-speed data entry.
+                </p>
+            </div>
+
+            <div class="feature-card" style="animation-delay: 0.4s;">
+                <div class="feature-icon">🛡️</div>
+                <h3 class="feature-title">Enterprise Security</h3>
+                <p class="feature-description">
+                    Multiple safety mechanisms including emergency stop, global hotkeys, 
+                    and secure timeout protection for complete user control.
+                </p>
+            </div>
+
+            <div class="feature-card" style="animation-delay: 0.5s;">
+                <div class="feature-icon">🎛️</div>
+                <h3 class="feature-title">Advanced Control</h3>
+                <p class="feature-description">
+                    Customizable hotkeys, pause/resume functionality, and intuitive GUI 
+                    with real-time status monitoring and progress tracking.
+                </p>
+            </div>
+
+            <div class="feature-card" style="animation-delay: 0.6s;">
+                <div class="feature-icon">🎨</div>
+                <h3 class="feature-title">Modern Interface</h3>
+                <p class="feature-description">
+                    Beautiful gradient design with smooth animations and responsive controls. 
+                    Built for the modern workflow with aesthetic excellence.
+                </p>
+            </div>
+        </section>
+
+        <section class="installation-section">
+            <h2>Quick Installation</h2>
             <div class="install-steps">
-                <div class="step">
-                    <span class="step-number">1</span>
-                    <h3>Download</h3>
-                    <p>Download the latest version of AutoScribe for Windows</p>
+                <div class="install-step">
+                    <div class="step-number">1</div>
+                    <h4 class="step-title">Download</h4>
+                    <p>Download AutoScribe.py and save it to your computer</p>
                 </div>
-                <div class="step">
-                    <span class="step-number">2</span>
-                    <h3>Install Python</h3>
-                    <p>Make sure you have Python 3.x installed and run:</p>
-                    <code>pip install pyautogui keyboard</code>
+                <div class="install-step">
+                    <div class="step-number">2</div>
+                    <h4 class="step-title">Install Dependencies</h4>
+                    <p>Run: pip install pyautogui keyboard</p>
                 </div>
-                <div class="step">
-                    <span class="step-number">3</span>
-                    <h3>Start Typing</h3>
-                    <p>Run AutoScribe and start automated typing in any application</p>
+                <div class="install-step">
+                    <div class="step-number">3</div>
+                    <h4 class="step-title">Launch</h4>
+                    <p>Execute: python autoscribe.py</p>
+                </div>
+                <div class="install-step">
+                    <div class="step-number">4</div>
+                    <h4 class="step-title">Automate</h4>
+                    <p>Configure and deploy your first automation</p>
                 </div>
             </div>
         </section>
 
-        <section id="docs">
-            <h2>Documentation</h2>
-            <div class="docs-content">
-                <h3>Quick Start Guide</h3>
-                <ol>
-                    <li>Launch AutoScribe</li>
-                    <li>Enter or paste the text you want to type</li>
-                    <li>Set your desired typing speed (WPM)</li>
-                    <li>Adjust the countdown delay if needed</li>
-                    <li>Click Start or press F6</li>
-                    <li>Switch to your target window during countdown</li>
-                    <li>Watch as the text is typed automatically</li>
-                </ol>
-
-                <h3>Default Hotkeys</h3>
-                <ul>
-                    <li><strong>F6</strong> - Start typing</li>
-                    <li><strong>F7</strong> - Stop typing</li>
-                    <li><strong>F8</strong> - Pause/Resume typing</li>
-                </ul>
-            </div>
-        </section>
-    </main>
-
-    <footer>
-        <div class="footer-content">
-            <p>&copy; 2025 AutoScribe. All rights reserved.</p>
-            <div class="footer-links">
-                <a href="https://github.com/SathvikHaridasu/AutoScribe/issues">Report Issues</a>
-                <a href="https://github.com/SathvikHaridasu/AutoScribe/wiki">Documentation</a>
-                <a href="https://github.com/SathvikHaridasu/AutoScribe/releases">Releases</a>
+        <div class="tech-specs">
+            <h3>System Requirements</h3>
+            <div class="tech-list">
+                <div class="tech-item">Python 3.x</div>
+                <div class="tech-item">PyAutoGUI</div>
+                <div class="tech-item">Keyboard Library</div>
+                <div class="tech-item">Windows/macOS/Linux</div>
             </div>
         </div>
-    </footer>
+
+        <div class="tech-specs">
+            <h3>Default Hotkeys</h3>
+            <div class="tech-list">
+                <div class="tech-item">F6 - Start Typing</div>
+                <div class="tech-item">F7 - Stop Typing</div>
+                <div class="tech-item">F8 - Pause/Resume</div>
+                <div class="tech-item">Mouse Corner - Emergency Stop</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Create floating particles
+        function createParticles() {
+            const particles = document.getElementById('particles');
+            
+            setInterval(() => {
+                if (document.querySelectorAll('.particle').length < 50) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + 'vw';
+                    particle.style.animationDuration = (Math.random() * 3 + 3) + 's';
+                    particle.style.animationDelay = Math.random() * 2 + 's';
+                    particles.appendChild(particle);
+                    
+                    setTimeout(() => {
+                        if (particles.contains(particle)) {
+                            particles.removeChild(particle);
+                        }
+                    }, 6000);
+                }
+            }, 200);
+        }
+
+        // Typing animation
+        function startTypingAnimation() {
+            const texts = [
+                "Automating repetitive tasks...",
+                "Simulating human typing patterns...",
+                "Processing at 150 WPM...",
+                "Universal application compatibility...",
+                "Advanced AI typing simulation..."
+            ];
+            
+            let currentIndex = 0;
+            let currentText = '';
+            let isDeleting = false;
+            let typeSpeed = 100;
+            
+            function type() {
+                const fullText = texts[currentIndex];
+                
+                if (isDeleting) {
+                    currentText = fullText.substring(0, currentText.length - 1);
+                    typeSpeed = 50;
+                } else {
+                    currentText = fullText.substring(0, currentText.length + 1);
+                    typeSpeed = Math.random() * 100 + 50;
+                }
+                
+                document.getElementById('typingText').innerHTML = currentText + '<span class="cursor"></span>';
+                
+                if (!isDeleting && currentText === fullText) {
+                    setTimeout(() => {
+                        isDeleting = true;
+                    }, 2000);
+                } else if (isDeleting && currentText === '') {
+                    isDeleting = false;
+                    currentIndex = (currentIndex + 1) % texts.length;
+                }
+                
+                setTimeout(type, typeSpeed);
+            }
+            
+            type();
+        }
+
+        // Initialize animations
+        document.addEventListener('DOMContentLoaded', () => {
+            createParticles();
+            startTypingAnimation();
+            
+            // Observe feature cards for scroll animations
+            document.querySelectorAll('.feature-card').forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(50px)';
+                card.style.transition = `all 0.6s ease ${index * 0.1}s`;
+                observer.observe(card);
+            });
+        });
+    </script>
 </body>
 </html>

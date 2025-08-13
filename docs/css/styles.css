@@ -51,6 +51,12 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     line-height: 1.6;
     color: var(--text-color);
+    cursor: none;
+}
+
+/* Hide cursor on interactive elements */
+a, button, .feature-card, .step {
+    cursor: none;
 }
 
 /* Navigation */
