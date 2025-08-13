@@ -30,6 +30,7 @@ class AutoScribe:
         
         # Typing pattern variables
         self.current_wpm = 60
+<<<<<<< HEAD
         self.target_wpm = 60
         self.speed_change_chance = 0.15
         self.acceleration = 0
@@ -46,6 +47,14 @@ class AutoScribe:
         self.mistake_attempts = 0
         self.max_mistake_attempts = random.randint(1, 4)
         self.current_mistake = ""
+=======
+        self.target_wpm = 60  # Target speed to gradually move towards
+        self.speed_change_chance = 0.15  # 15% chance to change speed per character
+        self.acceleration = 0  # Current speed change direction and magnitude
+        self.words_typed_since_last_pause = 0
+        self.next_pause_after_words = random.randint(3, 8)
+        self.burst_mode = False  # For sudden speed bursts
+>>>>>>> parent of 5be2be9 (make mistakes on purpose then fix it)
         
         # Load settings and setup UI
         self.load_settings()
@@ -172,6 +181,7 @@ class AutoScribe:
         keyboard.add_hotkey(self.stop_key, self.stop_typing)
         keyboard.add_hotkey(self.pause_key, self.toggle_pause)
 
+<<<<<<< HEAD
     def simulate_typing_mistake(self, word):
         """Generate a realistic typing mistake"""
         if len(word) < 2:
@@ -287,6 +297,8 @@ class AutoScribe:
             
         return word
 
+=======
+>>>>>>> parent of 5be2be9 (make mistakes on purpose then fix it)
     def calculate_delay(self):
         """Calculate delay between keystrokes with dynamic speed changes"""
         min_wpm = self.min_wpm.get()
@@ -352,12 +364,6 @@ class AutoScribe:
         self.typing = True
         self.paused = False
         self.current_index = 0
-        
-        # Reset mistake simulation variables
-        self.words_since_last_mistake = 0
-        self.next_mistake_after = random.randint(5, 8)
-        self.making_mistake = False
-        self.mistake_attempts = 0
         
         # Reset typing pattern variables
         self.current_wpm = (self.min_wpm.get() + self.max_wpm.get()) / 2  # Start at middle speed
