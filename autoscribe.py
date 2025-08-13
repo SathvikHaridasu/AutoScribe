@@ -30,43 +30,12 @@ class AutoScribe:
         
         # Typing pattern variables
         self.current_wpm = 60
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-        self.target_wpm = 60
-        self.speed_change_chance = 0.15
-        self.acceleration = 0
-        self.burst_mode = False
-        
-        # Natural pause tracking
-        self.words_typed_since_last_pause = 0
-        self.next_pause_after_words = random.randint(1, 8)
-        
-        # Error simulation variables
-        self.words_since_last_mistake = 0
-        self.next_mistake_after = random.randint(5, 8)
-        self.making_mistake = False
-        self.mistake_attempts = 0
-        self.max_mistake_attempts = random.randint(1, 4)
-        self.current_mistake = ""
-=======
         self.target_wpm = 60  # Target speed to gradually move towards
         self.speed_change_chance = 0.15  # 15% chance to change speed per character
         self.acceleration = 0  # Current speed change direction and magnitude
         self.words_typed_since_last_pause = 0
         self.next_pause_after_words = random.randint(3, 8)
         self.burst_mode = False  # For sudden speed bursts
->>>>>>> parent of 5be2be9 (make mistakes on purpose then fix it)
-=======
-        self.chars_typed_at_current_speed = 0
-        self.words_typed_since_last_pause = 0
-        self.next_pause_after_words = random.randint(1, 8)
->>>>>>> parent of 98495b9 (burst typing)
-=======
-        self.chars_typed_at_current_speed = 0
-        self.words_typed_since_last_pause = 0
-        self.next_pause_after_words = random.randint(1, 8)
->>>>>>> parent of 98495b9 (burst typing)
         
         # Load settings and setup UI
         self.load_settings()
@@ -193,146 +162,57 @@ class AutoScribe:
         keyboard.add_hotkey(self.stop_key, self.stop_typing)
         keyboard.add_hotkey(self.pause_key, self.toggle_pause)
 
-<<<<<<< HEAD
-    def simulate_typing_mistake(self, word):
-        """Generate a realistic typing mistake"""
-        if len(word) < 2:
-            return word
-            
-        # Define possible mistake types
-        mistake_types = ['swap', 'double', 'skip', 'adjacent', 'early']
-        mistake = random.choice(mistake_types)
-        
-        # Keyboard layout for adjacent key mistakes
-        keyboard = {
-            'a': 'qwsz', 'b': 'vghn', 'c': 'xdfv',
-            'd': 'sfcv', 'e': 'wrd', 'f': 'drgv',
-            'g': 'fthb', 'h': 'gjbn', 'i': 'ujko',
-            'j': 'hkn', 'k': 'jlo', 'l': 'kop',
-            'm': 'nj', 'n': 'bhm', 'o': 'ikp',
-            'p': 'ol', 'q': 'wa', 'r': 'edf',
-            's': 'wad', 't': 'rfg', 'u': 'yij',
-            'v': 'cfb', 'w': 'qas', 'x': 'zdc',
-            'y': 'tuh', 'z': 'asx'
-        }
-        
-        if mistake == 'swap' and len(word) >= 2:
-            # Swap two adjacent characters
-            pos = random.randint(0, len(word)-2)
-            letters = list(word)
-            letters[pos], letters[pos+1] = letters[pos+1], letters[pos]
-            return ''.join(letters)
-            
-        elif mistake == 'double':
-            # Double a character
-            pos = random.randint(0, len(word)-1)
-            return word[:pos] + word[pos] + word[pos:]
-            
-        elif mistake == 'skip':
-            # Skip a character
-            pos = random.randint(0, len(word)-1)
-            return word[:pos] + word[pos+1:]
-            
-        elif mistake == 'adjacent':
-            # Hit an adjacent key instead
-            pos = random.randint(0, len(word)-1)
-            char = word[pos].lower()
-            if char in keyboard:
-                wrong_char = random.choice(keyboard[char])
-                return word[:pos] + wrong_char + word[pos+1:]
-            return word
-            
-        else:  # early space
-            # Insert a space in the middle of the word
-            if len(word) >= 3:
-                pos = random.randint(1, len(word)-2)
-                return word[:pos] + ' ' + word[pos:]
-            return word
-                'a': 'qwsxz', 'b': 'vghn', 'c': 'xdfv', 'd': 'srfvc',
-                'e': 'wrsdf', 'f': 'drtgvc', 'g': 'ftyhbv', 'h': 'gyujnb',
-                'i': 'ujklo', 'j': 'huikmn', 'k': 'jiolm', 'l': 'kop',
-                'm': 'njk', 'n': 'bhjm', 'o': 'iklp', 'p': 'ol',
-                'q': 'wa', 'r': 'edft', 's': 'wadzx', 't': 'rfgy',
-                'u': 'yhji', 'v': 'cfgb', 'w': 'qase', 'x': 'zsdc',
-                'y': 'tghu', 'z': 'asx'
-            }
-            pos = random.randint(0, len(word)-1)
-            char = word[pos].lower()
-            if char in keyboard_layout:
-                wrong_char = random.choice(keyboard_layout[char])
-                return word[:pos] + wrong_char + word[pos+1:]
-            return word
-            
-        else:  # early space
-            if len(word) >= 3:
-                pos = random.randint(1, len(word)-2)
-                return word[:pos] + ' ' + word[pos:]
-            return word
-                'a': 'qwsxz', 'b': 'vghn', 'c': 'xdfv', 'd': 'srfvc',
-                'e': 'wrsdf', 'f': 'drtgvc', 'g': 'ftyhbv', 'h': 'gyujnb',
-                'i': 'ujklo', 'j': 'huikmn', 'k': 'jiolm', 'l': 'kop',
-                'm': 'njk', 'n': 'bhjm', 'o': 'iklp', 'p': 'ol',
-                'q': 'wa', 'r': 'edft', 's': 'wadzx', 't': 'rfgy',
-                'u': 'yhji', 'v': 'cfgb', 'w': 'qase', 'x': 'zsdc',
-                'y': 'tghu', 'z': 'asx'
-            }
-            pos = random.randint(0, len(word)-1)
-            char = word[pos].lower()
-            if char in adjacent_keys:
-                wrong_char = random.choice(adjacent_keys[char])
-                return word[:pos] + wrong_char + word[pos+1:]
-            return word
-            
-        elif mistake_type == 'early':
-            if len(word) >= 3:
-                pos = random.randint(1, len(word)-2)
-                return word[:pos] + ' ' + word[pos:]
-            return word
-            
-        return word
-                'a': 'qs', 'b': 'vn', 'c': 'xv', 'd': 'sf', 'e': 'wr', 'f': 'dg',
-                'g': 'fh', 'h': 'gj', 'i': 'uo', 'j': 'hk', 'k': 'jl', 'l': 'k',
-                'm': 'n', 'n': 'bm', 'o': 'ip', 'p': 'o', 'q': 'wa', 'r': 'et',
-                's': 'ad', 't': 'ry', 'u': 'yi', 'v': 'cb', 'w': 'qe', 'x': 'zc',
-                'y': 'tu', 'z': 'x'
-            }
-            pos = random.randint(0, len(word)-1)
-            char = word[pos].lower()
-            if char in adjacent_keys:
-                replacement = random.choice(adjacent_keys[char])
-                return word[:pos] + replacement + word[pos+1:]
-            return word
-            
-        elif mistake_type == 'early':
-            pos = random.randint(1, len(word)-1)
-            return word[:pos] + ' ' + word[pos:]
-            
-        return word
-
-=======
->>>>>>> parent of 5be2be9 (make mistakes on purpose then fix it)
     def calculate_delay(self):
-        """Calculate delay between keystrokes based on current WPM"""
-        # Update speed every 5 characters
-        if self.chars_typed_at_current_speed >= 5:
-            min_wpm = self.min_wpm.get()
-            max_wpm = self.max_wpm.get()
-            
-            # Calculate a new speed within a reasonable range of the current speed
-            speed_range = min(30, (max_wpm - min_wpm) / 4)  # Maximum speed change of 30 WPM
-            new_min = max(min_wpm, self.current_wpm - speed_range)
-            new_max = min(max_wpm, self.current_wpm + speed_range)
-            self.current_wpm = random.uniform(new_min, new_max)
-            self.chars_typed_at_current_speed = 0
+        """Calculate delay between keystrokes with dynamic speed changes"""
+        min_wpm = self.min_wpm.get()
+        max_wpm = self.max_wpm.get()
+        
+        # Chance to change typing behavior
+        if random.random() < self.speed_change_chance:
+            # Decide whether to start a burst or change target speed
+            if random.random() < 0.3:  # 30% chance for burst
+                self.burst_mode = True
+                self.target_wpm = max_wpm
+                self.acceleration = 5.0  # Rapid acceleration
+            else:
+                self.burst_mode = False
+                # Set new target speed anywhere in the range
+                self.target_wpm = random.uniform(min_wpm, max_wpm)
+                # Random acceleration between -2 and 2 WPM per character
+                self.acceleration = random.uniform(-2.0, 2.0)
+        
+        # Update current speed based on acceleration and target
+        if self.burst_mode:
+            # Rapid approach to target during burst
+            self.current_wpm = min(self.current_wpm + self.acceleration, self.target_wpm)
+            if self.current_wpm >= self.target_wpm:
+                self.burst_mode = False
+                self.target_wpm = min_wpm  # Return to slower speed after burst
+        else:
+            # Gradual approach to target speed
+            if abs(self.current_wpm - self.target_wpm) < 0.1:
+                # Reached target, potentially set new target
+                if random.random() < 0.2:  # 20% chance to change target
+                    self.target_wpm = random.uniform(min_wpm, max_wpm)
+            else:
+                # Move toward target speed
+                self.current_wpm += self.acceleration
+                # Ensure speed stays within bounds
+                self.current_wpm = max(min_wpm, min(self.current_wpm, max_wpm))
         
         # Convert current WPM to milliseconds per character
-        chars_per_minute = self.current_wpm * 5  # Average word length of 5 characters
-        ms_per_char = 60000 / chars_per_minute
+        chars_per_minute = self.current_wpm * 5
+        base_delay = 60000 / chars_per_minute
         
-        # Add subtle variation (±10%)
-        variation = ms_per_char * 0.1
-        self.chars_typed_at_current_speed += 1
-        return ms_per_char + random.uniform(-variation, variation)
+        # Add micro variations (±10%)
+        variation = base_delay * 0.1
+        actual_delay = base_delay + random.uniform(-variation, variation)
+        
+        # Occasionally add "thinking" pauses mid-word (5% chance)
+        if not self.burst_mode and random.random() < 0.05:
+            actual_delay += random.uniform(100, 300)  # Add 0.1-0.3 second pause
+            
+        return actual_delay
 
     def start_typing(self):
         """Start the typing process"""
@@ -375,7 +255,7 @@ class AutoScribe:
             self.status_label.config(text="Status: Typing...")
 
     def type_text(self):
-        """Type out the text with random delays, word pauses, and realistic mistakes"""
+        """Type out the text with random delays and word pauses"""
         time.sleep(3)  # Initial delay for countdown
         
         # Initialize word tracking
@@ -388,38 +268,9 @@ class AutoScribe:
                 # Add character to current word
                 if char.isalnum() or char in "'-":
                     current_word.append(char)
-                    
-                    # Check if we should make a mistake
-                    if len(current_word) > 2 and not self.making_mistake:
-                        self.words_since_last_mistake += 1
-                        if self.words_since_last_mistake >= self.next_mistake_after:
-                            # Start making a mistake
-                            self.making_mistake = True
-                            self.mistake_attempts = 0
-                            self.max_mistake_attempts = random.randint(1, 3)
-                            self.current_mistake = self.simulate_typing_mistake(''.join(current_word))
-                            current_word = list(self.current_mistake)  # Type the mistake instead
-                            self.words_since_last_mistake = 0
-                            self.next_mistake_after = random.randint(5, 8)
                 else:
                     # Word boundary reached
                     if current_word:
-                        if self.making_mistake and self.mistake_attempts < self.max_mistake_attempts:
-                            # Simulate backspacing to fix the mistake
-                            for _ in range(len(self.current_mistake)):
-                                pyautogui.press('backspace')
-                                time.sleep(0.1)
-                            
-                            # Try typing again, maybe still make a mistake
-                            self.mistake_attempts += 1
-                            if self.mistake_attempts < self.max_mistake_attempts:
-                                self.current_mistake = self.simulate_typing_mistake(''.join(current_word))
-                                current_word = list(self.current_mistake)
-                            else:
-                                # Finally type it correctly
-                                current_word = list(''.join(current_word))
-                                self.making_mistake = False
-                        
                         self.words_typed_since_last_pause += 1
                         current_word = []
                         
