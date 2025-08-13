@@ -35,6 +35,10 @@ class AutoScribe:
         self.acceleration = 0
         self.burst_mode = False
         
+        # Natural pause tracking
+        self.words_typed_since_last_pause = 0
+        self.next_pause_after_words = random.randint(1, 8)
+        
         # Error simulation variables
         self.words_since_last_mistake = 0
         self.next_mistake_after = random.randint(5, 8)
@@ -170,34 +174,100 @@ class AutoScribe:
 
     def simulate_typing_mistake(self, word):
         """Generate a realistic typing mistake"""
-        mistake_types = [
-            'swap',      # Swap two adjacent letters
-            'double',    # Double a letter
-            'skip',      # Skip a letter
-            'adjacent',  # Hit an adjacent key
-            'early',     # Hit space too early
-        ]
-        
-        mistake_type = random.choice(mistake_types)
         if len(word) < 2:
             return word
             
-        if mistake_type == 'swap' and len(word) >= 2:
+        # Define possible mistake types
+        mistake_types = ['swap', 'double', 'skip', 'adjacent', 'early']
+        mistake = random.choice(mistake_types)
+        
+        # Keyboard layout for adjacent key mistakes
+        keyboard = {
+            'a': 'qwsz', 'b': 'vghn', 'c': 'xdfv',
+            'd': 'sfcv', 'e': 'wrd', 'f': 'drgv',
+            'g': 'fthb', 'h': 'gjbn', 'i': 'ujko',
+            'j': 'hkn', 'k': 'jlo', 'l': 'kop',
+            'm': 'nj', 'n': 'bhm', 'o': 'ikp',
+            'p': 'ol', 'q': 'wa', 'r': 'edf',
+            's': 'wad', 't': 'rfg', 'u': 'yij',
+            'v': 'cfb', 'w': 'qas', 'x': 'zdc',
+            'y': 'tuh', 'z': 'asx'
+        }
+        
+        if mistake == 'swap' and len(word) >= 2:
+            # Swap two adjacent characters
             pos = random.randint(0, len(word)-2)
             letters = list(word)
             letters[pos], letters[pos+1] = letters[pos+1], letters[pos]
             return ''.join(letters)
             
-        elif mistake_type == 'double':
+        elif mistake == 'double':
+            # Double a character
             pos = random.randint(0, len(word)-1)
             return word[:pos] + word[pos] + word[pos:]
             
-        elif mistake_type == 'skip':
+        elif mistake == 'skip':
+            # Skip a character
             pos = random.randint(0, len(word)-1)
             return word[:pos] + word[pos+1:]
             
-        elif mistake_type == 'adjacent':
-            adjacent_keys = {
+        elif mistake == 'adjacent':
+            # Hit an adjacent key instead
+            pos = random.randint(0, len(word)-1)
+            char = word[pos].lower()
+            if char in keyboard:
+                wrong_char = random.choice(keyboard[char])
+                return word[:pos] + wrong_char + word[pos+1:]
+            return word
+            
+        else:  # early space
+            # Insert a space in the middle of the word
+            if len(word) >= 3:
+                pos = random.randint(1, len(word)-2)
+                return word[:pos] + ' ' + word[pos:]
+            return word
+                'a': 'qwsxz', 'b': 'vghn', 'c': 'xdfv', 'd': 'srfvc',
+                'e': 'wrsdf', 'f': 'drtgvc', 'g': 'ftyhbv', 'h': 'gyujnb',
+                'i': 'ujklo', 'j': 'huikmn', 'k': 'jiolm', 'l': 'kop',
+                'm': 'njk', 'n': 'bhjm', 'o': 'iklp', 'p': 'ol',
+                'q': 'wa', 'r': 'edft', 's': 'wadzx', 't': 'rfgy',
+                'u': 'yhji', 'v': 'cfgb', 'w': 'qase', 'x': 'zsdc',
+                'y': 'tghu', 'z': 'asx'
+            }
+            pos = random.randint(0, len(word)-1)
+            char = word[pos].lower()
+            if char in keyboard_layout:
+                wrong_char = random.choice(keyboard_layout[char])
+                return word[:pos] + wrong_char + word[pos+1:]
+            return word
+            
+        else:  # early space
+            if len(word) >= 3:
+                pos = random.randint(1, len(word)-2)
+                return word[:pos] + ' ' + word[pos:]
+            return word
+                'a': 'qwsxz', 'b': 'vghn', 'c': 'xdfv', 'd': 'srfvc',
+                'e': 'wrsdf', 'f': 'drtgvc', 'g': 'ftyhbv', 'h': 'gyujnb',
+                'i': 'ujklo', 'j': 'huikmn', 'k': 'jiolm', 'l': 'kop',
+                'm': 'njk', 'n': 'bhjm', 'o': 'iklp', 'p': 'ol',
+                'q': 'wa', 'r': 'edft', 's': 'wadzx', 't': 'rfgy',
+                'u': 'yhji', 'v': 'cfgb', 'w': 'qase', 'x': 'zsdc',
+                'y': 'tghu', 'z': 'asx'
+            }
+            pos = random.randint(0, len(word)-1)
+            char = word[pos].lower()
+            if char in adjacent_keys:
+                wrong_char = random.choice(adjacent_keys[char])
+                return word[:pos] + wrong_char + word[pos+1:]
+            return word
+            
+        elif mistake_type == 'early':
+            if len(word) >= 3:
+                pos = random.randint(1, len(word)-2)
+                return word[:pos] + ' ' + word[pos:]
+            return word
+            
+        return word
                 'a': 'qs', 'b': 'vn', 'c': 'xv', 'd': 'sf', 'e': 'wr', 'f': 'dg',
                 'g': 'fh', 'h': 'gj', 'i': 'uo', 'j': 'hk', 'k': 'jl', 'l': 'k',
                 'm': 'n', 'n': 'bm', 'o': 'ip', 'p': 'o', 'q': 'wa', 'r': 'et',
@@ -316,7 +386,7 @@ class AutoScribe:
             self.status_label.config(text="Status: Typing...")
 
     def type_text(self):
-        """Type out the text with random delays and word pauses"""
+        """Type out the text with random delays, word pauses, and realistic mistakes"""
         time.sleep(3)  # Initial delay for countdown
         
         # Initialize word tracking
@@ -329,9 +399,38 @@ class AutoScribe:
                 # Add character to current word
                 if char.isalnum() or char in "'-":
                     current_word.append(char)
+                    
+                    # Check if we should make a mistake
+                    if len(current_word) > 2 and not self.making_mistake:
+                        self.words_since_last_mistake += 1
+                        if self.words_since_last_mistake >= self.next_mistake_after:
+                            # Start making a mistake
+                            self.making_mistake = True
+                            self.mistake_attempts = 0
+                            self.max_mistake_attempts = random.randint(1, 3)
+                            self.current_mistake = self.simulate_typing_mistake(''.join(current_word))
+                            current_word = list(self.current_mistake)  # Type the mistake instead
+                            self.words_since_last_mistake = 0
+                            self.next_mistake_after = random.randint(5, 8)
                 else:
                     # Word boundary reached
                     if current_word:
+                        if self.making_mistake and self.mistake_attempts < self.max_mistake_attempts:
+                            # Simulate backspacing to fix the mistake
+                            for _ in range(len(self.current_mistake)):
+                                pyautogui.press('backspace')
+                                time.sleep(0.1)
+                            
+                            # Try typing again, maybe still make a mistake
+                            self.mistake_attempts += 1
+                            if self.mistake_attempts < self.max_mistake_attempts:
+                                self.current_mistake = self.simulate_typing_mistake(''.join(current_word))
+                                current_word = list(self.current_mistake)
+                            else:
+                                # Finally type it correctly
+                                current_word = list(''.join(current_word))
+                                self.making_mistake = False
+                        
                         self.words_typed_since_last_pause += 1
                         current_word = []
                         
