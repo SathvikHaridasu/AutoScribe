@@ -32,6 +32,7 @@ class AutoScribe:
         self.current_wpm = 60
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.target_wpm = 60
         self.speed_change_chance = 0.15
         self.acceleration = 0
@@ -56,6 +57,11 @@ class AutoScribe:
         self.next_pause_after_words = random.randint(3, 8)
         self.burst_mode = False  # For sudden speed bursts
 >>>>>>> parent of 5be2be9 (make mistakes on purpose then fix it)
+=======
+        self.chars_typed_at_current_speed = 0
+        self.words_typed_since_last_pause = 0
+        self.next_pause_after_words = random.randint(1, 8)
+>>>>>>> parent of 98495b9 (burst typing)
 =======
         self.chars_typed_at_current_speed = 0
         self.words_typed_since_last_pause = 0
