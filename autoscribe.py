@@ -32,7 +32,7 @@ class AutoScribe:
         self.current_wpm = 60
         self.chars_typed_at_current_speed = 0
         self.words_typed_since_last_pause = 0
-        self.next_pause_after_words = random.randint(3, 8)
+        self.next_pause_after_words = random.randint(1, 8)
         
         # Load settings and setup UI
         self.load_settings()
@@ -200,7 +200,7 @@ class AutoScribe:
         self.current_wpm = (self.min_wpm.get() + self.max_wpm.get()) / 2  # Start at middle speed
         self.chars_typed_at_current_speed = 0
         self.words_typed_since_last_pause = 0
-        self.next_pause_after_words = random.randint(3, 8)
+        self.next_pause_after_words = random.randint(1, 8)
         
         # Update UI
         self.start_button.config(state=tk.DISABLED)
@@ -249,14 +249,14 @@ class AutoScribe:
                             self.current_index += 1
                             
                             # Random pause between 1-3 seconds
-                            pause_time = random.uniform(1, 3)
+                            pause_time = random.uniform(0.5, 3)
                             self.status_label.config(text="Status: Natural pause...")
                             time.sleep(pause_time)
                             self.status_label.config(text="Status: Typing...")
                             
                             # Reset counters
                             self.words_typed_since_last_pause = 0
-                            self.next_pause_after_words = random.randint(3, 8)
+                            self.next_pause_after_words = random.randint(1, 8)
                             continue
                 
                 # Type the character
