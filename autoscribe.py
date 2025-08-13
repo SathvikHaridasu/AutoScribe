@@ -30,9 +30,12 @@ class AutoScribe:
         
         # Typing pattern variables
         self.current_wpm = 60
-        self.chars_typed_at_current_speed = 0
+        self.target_wpm = 60  # Target speed to gradually move towards
+        self.speed_change_chance = 0.15  # 15% chance to change speed per character
+        self.acceleration = 0  # Current speed change direction and magnitude
         self.words_typed_since_last_pause = 0
-        self.next_pause_after_words = random.randint(1, 8)
+        self.next_pause_after_words = random.randint(3, 8)
+        self.burst_mode = False  # For sudden speed bursts
         
         # Load settings and setup UI
         self.load_settings()
@@ -160,27 +163,56 @@ class AutoScribe:
         keyboard.add_hotkey(self.pause_key, self.toggle_pause)
 
     def calculate_delay(self):
-        """Calculate delay between keystrokes based on current WPM"""
-        # Update speed every 5 characters
-        if self.chars_typed_at_current_speed >= 5:
-            min_wpm = self.min_wpm.get()
-            max_wpm = self.max_wpm.get()
-            
-            # Calculate a new speed within a reasonable range of the current speed
-            speed_range = min(30, (max_wpm - min_wpm) / 4)  # Maximum speed change of 30 WPM
-            new_min = max(min_wpm, self.current_wpm - speed_range)
-            new_max = min(max_wpm, self.current_wpm + speed_range)
-            self.current_wpm = random.uniform(new_min, new_max)
-            self.chars_typed_at_current_speed = 0
+        """Calculate delay between keystrokes with dynamic speed changes"""
+        min_wpm = self.min_wpm.get()
+        max_wpm = self.max_wpm.get()
+        
+        # Chance to change typing behavior
+        if random.random() < self.speed_change_chance:
+            # Decide whether to start a burst or change target speed
+            if random.random() < 0.3:  # 30% chance for burst
+                self.burst_mode = True
+                self.target_wpm = max_wpm
+                self.acceleration = 5.0  # Rapid acceleration
+            else:
+                self.burst_mode = False
+                # Set new target speed anywhere in the range
+                self.target_wpm = random.uniform(min_wpm, max_wpm)
+                # Random acceleration between -2 and 2 WPM per character
+                self.acceleration = random.uniform(-2.0, 2.0)
+        
+        # Update current speed based on acceleration and target
+        if self.burst_mode:
+            # Rapid approach to target during burst
+            self.current_wpm = min(self.current_wpm + self.acceleration, self.target_wpm)
+            if self.current_wpm >= self.target_wpm:
+                self.burst_mode = False
+                self.target_wpm = min_wpm  # Return to slower speed after burst
+        else:
+            # Gradual approach to target speed
+            if abs(self.current_wpm - self.target_wpm) < 0.1:
+                # Reached target, potentially set new target
+                if random.random() < 0.2:  # 20% chance to change target
+                    self.target_wpm = random.uniform(min_wpm, max_wpm)
+            else:
+                # Move toward target speed
+                self.current_wpm += self.acceleration
+                # Ensure speed stays within bounds
+                self.current_wpm = max(min_wpm, min(self.current_wpm, max_wpm))
         
         # Convert current WPM to milliseconds per character
-        chars_per_minute = self.current_wpm * 5  # Average word length of 5 characters
-        ms_per_char = 60000 / chars_per_minute
+        chars_per_minute = self.current_wpm * 5
+        base_delay = 60000 / chars_per_minute
         
-        # Add subtle variation (±10%)
-        variation = ms_per_char * 0.1
-        self.chars_typed_at_current_speed += 1
-        return ms_per_char + random.uniform(-variation, variation)
+        # Add micro variations (±10%)
+        variation = base_delay * 0.1
+        actual_delay = base_delay + random.uniform(-variation, variation)
+        
+        # Occasionally add "thinking" pauses mid-word (5% chance)
+        if not self.burst_mode and random.random() < 0.05:
+            actual_delay += random.uniform(100, 300)  # Add 0.1-0.3 second pause
+            
+        return actual_delay
 
     def start_typing(self):
         """Start the typing process"""
