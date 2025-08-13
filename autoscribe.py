@@ -17,7 +17,7 @@ class AutoScribe:
         # Initialize the main window
         self.root = tk.Tk()
         self.root.title("AutoScribe")
-        self.root.geometry("400x500")
+        self.root.geometry("420x560")
 
         # State variables
         self.typing = False
@@ -36,8 +36,11 @@ class AutoScribe:
         self.next_pause_after_words = random.randint(3, 8)
         self.burst_mode = False  # For sudden speed bursts
 
-        # Intentional typo settings
-        self.typo_probability = 0.08  # ~8% of words will get a typo and correction
+        # Mistake (delete and correct) scheduling: every N words (random between min/max)
+        self.typo_min_words = tk.IntVar(value=5)   # Minimum words between corrections
+        self.typo_max_words = tk.IntVar(value=12)  # Maximum words between corrections
+        self.words_since_last_typo = 0
+        self.next_typo_after_words = random.randint(self.typo_min_words.get(), self.typo_max_words.get())
 
         # Load settings and setup UI
         self.load_settings()
@@ -84,7 +87,7 @@ class AutoScribe:
 
         # Text input area
         ttk.Label(main_frame, text="Enter text to type:").pack(anchor=tk.W)
-        self.text_area = tk.Text(main_frame, height=10, width=40)
+        self.text_area = tk.Text(main_frame, height=10, width=44)
         self.text_area.pack(fill=tk.BOTH, expand=True, pady=5)
 
         # Speed control frame
@@ -99,13 +102,13 @@ class AutoScribe:
         min_frame = ttk.Frame(wpm_frame)
         min_frame.pack(side=tk.LEFT, padx=(0, 10))
         ttk.Label(min_frame, text="Min WPM:").pack(side=tk.LEFT)
-        ttk.Entry(min_frame, textvariable=self.min_wpm, width=5).pack(side=tk.LEFT, padx=5)
+        ttk.Entry(min_frame, textvariable=self.min_wpm, width=6).pack(side=tk.LEFT, padx=5)
 
         # Max WPM
         max_frame = ttk.Frame(wpm_frame)
         max_frame.pack(side=tk.LEFT)
         ttk.Label(max_frame, text="Max WPM:").pack(side=tk.LEFT)
-        ttk.Entry(max_frame, textvariable=self.max_wpm, width=5).pack(side=tk.LEFT, padx=5)
+        ttk.Entry(max_frame, textvariable=self.max_wpm, width=6).pack(side=tk.LEFT, padx=5)
 
         # Validate WPM inputs
         def validate_wpm(*args):
@@ -125,6 +128,39 @@ class AutoScribe:
 
         self.min_wpm.trace('w', validate_wpm)
         self.max_wpm.trace('w', validate_wpm)
+
+        # Mistake frequency frame
+        typo_frame = ttk.LabelFrame(main_frame, text="Mistake Frequency (delete and correct)", padding="5")
+        typo_frame.pack(fill=tk.X, pady=5)
+
+        typo_row = ttk.Frame(typo_frame)
+        typo_row.pack(fill=tk.X, padx=5, pady=5)
+
+        ttk.Label(typo_row, text="Mistake every").pack(side=tk.LEFT)
+        ttk.Entry(typo_row, textvariable=self.typo_min_words, width=4).pack(side=tk.LEFT, padx=(5, 2))
+        ttk.Label(typo_row, text="to").pack(side=tk.LEFT, padx=(2, 2))
+        ttk.Entry(typo_row, textvariable=self.typo_max_words, width=4).pack(side=tk.LEFT, padx=(2, 5))
+        ttk.Label(typo_row, text="words (random)").pack(side=tk.LEFT)
+
+        # Validate typo word range
+        def validate_typo_words(*args):
+            try:
+                minw = self.typo_min_words.get()
+                maxw = self.typo_max_words.get()
+                if minw < 1:
+                    self.typo_min_words.set(1)
+                    minw = 1
+                if maxw < 1:
+                    self.typo_max_words.set(1)
+                    maxw = 1
+                if minw > maxw:
+                    # Keep them consistent by setting min to max
+                    self.typo_min_words.set(maxw)
+            except tk.TclError:
+                pass
+
+        self.typo_min_words.trace('w', validate_typo_words)
+        self.typo_max_words.trace('w', validate_typo_words)
 
         # Control buttons
         button_frame = ttk.Frame(main_frame)
@@ -161,9 +197,10 @@ class AutoScribe:
             "\nInstructions:\n"
             "1. Enter the text you want to type\n"
             "2. Set minimum and maximum WPM (60-80 recommended)\n"
-            "3. Click Start or press F6\n"
-            "4. Switch to your target window within 3 seconds\n"
-            "5. Use F8 to pause/resume and F7 to stop"
+            "3. Set how often to make a mistake (e.g., every 5 to 12 words)\n"
+            "4. Click Start or press F6\n"
+            "5. Switch to your target window within 3 seconds\n"
+            "6. Use F8 to pause/resume and F7 to stop"
         )
         ttk.Label(main_frame, text=instructions, justify=tk.LEFT).pack(pady=10)
 
@@ -311,6 +348,13 @@ class AutoScribe:
         self.words_typed_since_last_pause = 0
         self.next_pause_after_words = random.randint(1, 8)
 
+        # Reset mistake schedule
+        self.words_since_last_typo = 0
+        # Ensure valid range
+        minw = max(1, self.typo_min_words.get())
+        maxw = max(minw, self.typo_max_words.get())
+        self.next_typo_after_words = random.randint(minw, maxw)
+
         # Update UI
         self.start_button.config(state=tk.DISABLED)
         self.pause_button.config(state=tk.NORMAL)
@@ -332,7 +376,7 @@ class AutoScribe:
             self.status_label.config(text="Status: Typing...")
 
     def type_text(self):
-        """Type text with random delays and human-like 'mistype then correct' behavior."""
+        """Type text with random delays and scheduled 'mistype then correct' behavior."""
         time.sleep(3)  # Initial delay for countdown
 
         # Track current word and typo plan
@@ -352,13 +396,14 @@ class AutoScribe:
             char = self.text_to_type[self.current_index]
 
             if is_word_char(char):
-                # Starting a new word?
+                # Starting a new word? If so, decide if this word should get a typo based on schedule
                 if not current_word_correct:
-                    typo_planned = (random.random() < self.typo_probability)
+                    # If we've reached the scheduled count, this word gets a mistake
+                    typo_planned = (self.words_since_last_typo >= self.next_typo_after_words)
                     typo_introduced = False
                     typed_word_len = 0
 
-                # Type possibly wrong char once per word
+                # Try to introduce exactly one neighbor-key mistake in this word
                 out_char = char
                 if typo_planned and not typo_introduced:
                     neighbor = self._neighbor_for_char(char)
@@ -380,31 +425,40 @@ class AutoScribe:
                     self.words_typed_since_last_pause += 1
 
                     if typo_planned and typo_introduced:
+                        # Perform correction sequence
                         if char.isspace():
-                            # Many people notice after hitting the space
+                            # Many people notice right after hitting the space
                             pyautogui.write(char)
                             self.current_index += 1
                             time.sleep(random.uniform(0.05, 0.2))
-                            # Delete space + word, then retype correctly + space
+                            # Delete space + word, then retype correctly, then space
                             self._press_backspaces(1 + typed_word_len)
                             for cc in current_word_correct:
                                 pyautogui.write(cc)
                                 time.sleep(self.calculate_delay() / 1000.0)
                             pyautogui.write(' ')
                         else:
-                            # Correct before committing punctuation
+                            # Punctuation: correct before committing punctuation
                             self._press_backspaces(typed_word_len)
                             for cc in current_word_correct:
                                 pyautogui.write(cc)
                                 time.sleep(self.calculate_delay() / 1000.0)
                             pyautogui.write(char)
                             self.current_index += 1
+
+                        # Reset mistake schedule after a correction
+                        self.words_since_last_typo = 0
+                        minw = max(1, self.typo_min_words.get())
+                        maxw = max(minw, self.typo_max_words.get())
+                        self.next_typo_after_words = random.randint(minw, maxw)
                     else:
-                        # No typo: just type the boundary
+                        # No typo on this word: just type the boundary
                         pyautogui.write(char)
                         self.current_index += 1
+                        # Count this word toward the next scheduled typo
+                        self.words_since_last_typo += 1
 
-                    # Natural word-level pause after corrections/boundary
+                    # Natural word-level pause after boundary/correction
                     if self.words_typed_since_last_pause >= self.next_pause_after_words:
                         pause_time = random.uniform(0.5, 3.0)
                         self.set_status("Status: Natural pause...")
@@ -430,6 +484,11 @@ class AutoScribe:
             for cc in current_word_correct:
                 pyautogui.write(cc)
                 time.sleep(self.calculate_delay() / 1000.0)
+            # Reset schedule since we just corrected
+            self.words_since_last_typo = 0
+            minw = max(1, self.typo_min_words.get())
+            maxw = max(minw, self.typo_max_words.get())
+            self.next_typo_after_words = random.randint(minw, maxw)
 
         if self.current_index >= len(self.text_to_type):
             # Set completed first so stop_typing doesn't overwrite it
