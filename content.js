@@ -844,4 +844,3 @@ if (typeof window.autoScribeLoaded !== 'undefined') {
   } else {
     console.log('DOM already loaded, content script ready');
   }
-} 
