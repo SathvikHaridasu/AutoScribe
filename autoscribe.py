@@ -30,12 +30,18 @@ class AutoScribe:
         
         # Typing pattern variables
         self.current_wpm = 60
-        self.target_wpm = 60  # Target speed to gradually move towards
-        self.speed_change_chance = 0.15  # 15% chance to change speed per character
-        self.acceleration = 0  # Current speed change direction and magnitude
-        self.words_typed_since_last_pause = 0
-        self.next_pause_after_words = random.randint(3, 8)
-        self.burst_mode = False  # For sudden speed bursts
+        self.target_wpm = 60
+        self.speed_change_chance = 0.15
+        self.acceleration = 0
+        self.burst_mode = False
+        
+        # Error simulation variables
+        self.words_since_last_mistake = 0
+        self.next_mistake_after = random.randint(5, 8)
+        self.making_mistake = False
+        self.mistake_attempts = 0
+        self.max_mistake_attempts = random.randint(1, 4)
+        self.current_mistake = ""
         
         # Load settings and setup UI
         self.load_settings()
@@ -162,6 +168,55 @@ class AutoScribe:
         keyboard.add_hotkey(self.stop_key, self.stop_typing)
         keyboard.add_hotkey(self.pause_key, self.toggle_pause)
 
+    def simulate_typing_mistake(self, word):
+        """Generate a realistic typing mistake"""
+        mistake_types = [
+            'swap',      # Swap two adjacent letters
+            'double',    # Double a letter
+            'skip',      # Skip a letter
+            'adjacent',  # Hit an adjacent key
+            'early',     # Hit space too early
+        ]
+        
+        mistake_type = random.choice(mistake_types)
+        if len(word) < 2:
+            return word
+            
+        if mistake_type == 'swap' and len(word) >= 2:
+            pos = random.randint(0, len(word)-2)
+            letters = list(word)
+            letters[pos], letters[pos+1] = letters[pos+1], letters[pos]
+            return ''.join(letters)
+            
+        elif mistake_type == 'double':
+            pos = random.randint(0, len(word)-1)
+            return word[:pos] + word[pos] + word[pos:]
+            
+        elif mistake_type == 'skip':
+            pos = random.randint(0, len(word)-1)
+            return word[:pos] + word[pos+1:]
+            
+        elif mistake_type == 'adjacent':
+            adjacent_keys = {
+                'a': 'qs', 'b': 'vn', 'c': 'xv', 'd': 'sf', 'e': 'wr', 'f': 'dg',
+                'g': 'fh', 'h': 'gj', 'i': 'uo', 'j': 'hk', 'k': 'jl', 'l': 'k',
+                'm': 'n', 'n': 'bm', 'o': 'ip', 'p': 'o', 'q': 'wa', 'r': 'et',
+                's': 'ad', 't': 'ry', 'u': 'yi', 'v': 'cb', 'w': 'qe', 'x': 'zc',
+                'y': 'tu', 'z': 'x'
+            }
+            pos = random.randint(0, len(word)-1)
+            char = word[pos].lower()
+            if char in adjacent_keys:
+                replacement = random.choice(adjacent_keys[char])
+                return word[:pos] + replacement + word[pos+1:]
+            return word
+            
+        elif mistake_type == 'early':
+            pos = random.randint(1, len(word)-1)
+            return word[:pos] + ' ' + word[pos:]
+            
+        return word
+
     def calculate_delay(self):
         """Calculate delay between keystrokes with dynamic speed changes"""
         min_wpm = self.min_wpm.get()
@@ -227,6 +282,12 @@ class AutoScribe:
         self.typing = True
         self.paused = False
         self.current_index = 0
+        
+        # Reset mistake simulation variables
+        self.words_since_last_mistake = 0
+        self.next_mistake_after = random.randint(5, 8)
+        self.making_mistake = False
+        self.mistake_attempts = 0
         
         # Reset typing pattern variables
         self.current_wpm = (self.min_wpm.get() + self.max_wpm.get()) / 2  # Start at middle speed
