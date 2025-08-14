@@ -1,11 +1,7 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import AutoScribeLanding from './components/AutoScribeLanding'
+import AutoScribeOriginal from './components/AutoScribeOriginal'
 
 function App() {
-  return <AutoScribeLanding />
+  return <AutoScribeOriginal />
 }
 
 export default App
