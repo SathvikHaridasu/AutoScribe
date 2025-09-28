@@ -1,4 +1,4 @@
-name: build-releases
+name: build-release
 
 on:
   push:
