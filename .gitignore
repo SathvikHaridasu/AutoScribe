@@ -1,0 +1,34 @@
+# PyInstaller artifacts
+build/
+dist/
+package/
+*.dmg
+*.exe
+*.app
+*.pkg
+
+# PyInstaller spec (ignore unless you customize it)
+AutoScribe.spec
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Environments
+.venv/
+venv/
+env/
+.conda/
+.mamba/
+
+# OS / editor
+.DS_Store
+*.log
+.vscode/
+.idea/
