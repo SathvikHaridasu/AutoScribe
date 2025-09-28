@@ -1,0 +1,103 @@
+name: build-release
+
+on:
+  push:
+    tags:
+      - 'v*'            # runs when you push a tag like v1.0.3 or v1.0.4
+  workflow_dispatch: {} # allow manual runs
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    name: macOS DMG
+    runs-on: macos-13   # Intel mac; good for PyInstaller
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Install your runtime deps (requirements.txt if present)
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pyinstaller
+
+      - name: Build .app with PyInstaller
+        run: |
+          pyinstaller --onedir --windowed --name "AutoScribe" autoscribe.py
+          test -d "dist/AutoScribe.app" || (echo "AutoScribe.app missing" && exit 1)
+
+      - name: Create DMG
+        run: |
+          mkdir -p package
+          cp -R "dist/AutoScribe.app" package/
+          ln -s /Applications package/Applications
+          hdiutil create -volname "AutoScribe" -srcfolder package -ov -format UDZO "AutoScribe-${{ github.ref_name }}.dmg"
+
+      - name: Upload DMG as artifact (manual runs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoScribe-mac-${{ github.ref_name }}
+          path: AutoScribe-${{ github.ref_name }}.dmg
+
+      - name: Upload DMG to GitHub Release (tagged builds)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AutoScribe-${{ github.ref_name }}.dmg
+          overwrite_files: true
+
+  windows:
+    name: Windows EXE
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path requirements.txt) { pip install -r requirements.txt }
+          pip install pyinstaller
+
+      - name: Build EXE with PyInstaller
+        shell: pwsh
+        run: |
+          # Adjust autoscribe.py if your entrypoint differs
+          pyinstaller --onefile --windowed --name AutoScribe autoscribe.py
+          if (-not (Test-Path dist\AutoScribe.exe)) {
+            Write-Error "dist\AutoScribe.exe not found. Check your entrypoint filename."
+          }
+
+      - name: Rename EXE with version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $ver="${{ github.ref_name }}"
+          Copy-Item "dist\AutoScribe.exe" "AutoScribe-$ver.exe"
+
+      - name: Upload EXE as artifact (manual runs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoScribe-win-${{ github.ref_name }}
+          path: AutoScribe-*.exe
+
+      - name: Upload EXE to GitHub Release (tagged builds)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AutoScribe-*.exe
+          overwrite_files: true
