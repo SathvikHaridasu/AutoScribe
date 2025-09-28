@@ -1,4 +1,6 @@
 name: build-macos
+permissions:
+  contents: write
 
 on:
   push:
